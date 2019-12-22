@@ -570,6 +570,8 @@ public class Client {
 			System.out.println("The File is not exist in server");
 		} else if (received == DELETE_SUCCESS) {
 			System.out.println("File - " + filename + " is deleted.");
+		} else {
+			System.out.println("Delete Not Success. Please retry");
 		}
 
 	}
@@ -592,7 +594,7 @@ public class Client {
 			
 			System.out.println("Filename           Filesize");
 			String filename = this.dis.readUTF();
-			while (!filename.equals("##end")) {
+			while (!filename.equals("??end")) {
 				
 				String filesize = this.dis.readUTF();
 				System.out.println(filename+"        "+filesize);

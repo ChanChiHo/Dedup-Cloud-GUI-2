@@ -430,12 +430,11 @@ public class GUI {
 		JLabel lblDownloading = new JLabel("Downloading...");
 		lblDownloading.setBounds(166, 6, 117, 16);
 		downloadProgress.add(lblDownloading);
-		
 
 		JScrollPane scrollPane_1 = new JScrollPane();
 		scrollPane_1.setBounds(30, 30, 390, 200);
 		downloadProgress.add(scrollPane_1);
-		
+
 		JTextArea downloadProgressArea = new JTextArea();
 		scrollPane_1.setViewportView(downloadProgressArea);
 
@@ -460,9 +459,6 @@ public class GUI {
 		});
 		btnBack_2.setBounds(327, 243, 117, 29);
 		downloadProgress.add(btnBack_2);
-
-
-		
 
 		JPanel listPage = new JPanel();
 		frame.getContentPane().add(listPage, "List");
@@ -581,7 +577,7 @@ public class GUI {
 						}
 					}).start();
 
-					//model.setRowCount(0);
+					// model.setRowCount(0);
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -627,6 +623,22 @@ public class GUI {
 						try {
 							ArrayList<String[]> data = client.list();
 							for (int i = 0; i < data.size(); i++) {
+								System.err.print(data.get(i)[1]);
+								
+								if (data.get(i)[1] == "/" && data.get(i)[0] == "Error Occur.") {
+									JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
+											JOptionPane.ERROR_MESSAGE);
+									cl.show(cards, "Home");
+									Thread.currentThread().interrupt();
+									break;
+								} else if (data.get(i)[1] == "/" && data.get(i)[0] == "No file in the server.") {
+									JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
+											JOptionPane.ERROR_MESSAGE);
+									cl.show(cards, "Home");
+									Thread.currentThread().interrupt();
+									break;
+								}
+
 								model.addRow(data.get(i));
 							}
 						} catch (IOException e1) {

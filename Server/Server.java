@@ -220,7 +220,7 @@ public class Server extends Thread {
 				int msgCode = receiveMsgCode();
 				//System.out.println("[FROM Client] Message Code: " + translateMsgCode(msgCode));
 				
-				switch (msgCode) {
+				switch (msgCode) {	
 				case REQUEST_UPLOAD:
 					receipt.clear();
 					String filename = this.dis.readUTF();
@@ -410,7 +410,7 @@ public class Server extends Thread {
 							
 							this.dos.writeUTF(sb.toString());
 						}
-						this.dos.writeUTF("##end");
+						this.dos.writeUTF("??end");
 					}
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
