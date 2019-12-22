@@ -26,7 +26,7 @@ $ java Server
 Then you will see the following message in command line:
 ```sh
 The data server is still running...
-Running at : 192.168.0.152
+Running at : 192.168.0.155
 ```
 The Ip address may be different, but please mark it down for the use of Client side.
 
