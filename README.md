@@ -8,10 +8,13 @@ Author : Chan Chi Ho (The Chinese University of Hong Kong) - First Version
 
 The project contain two part : Client Program and Server Program. They have been put in two different folder, each file will have a makefile to make the program.
 
+The textfile folder would store the test file for the testing purpose.
+
 ## Prerequisites
 
 - The computer must support java Swing and also SHA-256.
 - The port 59090 should be open for both Client and Server side computer.
+- The two computer client and server is better at the same network.
 
 ## Server Program
 
@@ -55,3 +58,14 @@ This program is not very stable, if you find any thing wrong during the make pro
 $ make detail
 ```
 It will show the warning and error during make process.
+
+Known Bugs
+- There would be crash when enter an unused IP Address
+- There would be delay when the connection of server broken
+- The upload page would not be able to upload if you are doing second upload
+
+Possible situation that would appear bug
+- Uploading huge file to the server
+- Uploading or downloading file, but the server stop running
+- The chunk or mydup.index is corrupted
+
