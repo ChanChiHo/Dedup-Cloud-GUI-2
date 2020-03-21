@@ -1,5 +1,6 @@
-# Dedup-Cloud-GUI
-This project is for Course Code CSCI4998. 
+# Dedup-Cloud-GUI-2
+This project is for Course Code CSCI4999. 
+The older version is in [link](https://github.com/ChanChiHo/Dedup-Cloud-GUI)
 
 ## Author
 Author : Chan Chi Ho (The Chinese University of Hong Kong) - First Version
@@ -69,3 +70,8 @@ Possible situation that would appear bug
 - Uploading or downloading file, but the server stop running
 - The chunk or mydup.index is corrupted
 
+## Fixing in version 2
+
+- Progress Bar added. You can see the estimate time and progress of uploading and downloading file.
+- Adding 'Connecting' Label when connecting to server.
+- You can now see the filename of selected file and reset your selection in uploading page.
