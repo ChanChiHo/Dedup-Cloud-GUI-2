@@ -75,3 +75,4 @@ Possible situation that would appear bug
 - Progress Bar added. You can see the estimate time and progress of uploading and downloading file.
 - Adding 'Connecting' Label when connecting to server.
 - You can now see the filename of selected file and reset your selection in uploading page.
+- Remove the BigInteger from code to enhance performance.
