@@ -3,6 +3,11 @@ import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.io.DataInputStream;
@@ -21,51 +26,57 @@ public class Client {
 	public ArrayList<Byte> fingerprintList = new ArrayList<>();
 
 	// Protocol - Connection failed
-	private static final int REQUEST_FAIL = 050;
+	public static final int REQUEST_FAIL = 050;
 
 	// Protocol - Upload
-	private static final int REQUEST_UPLOAD = 101;
-	private static final int ALLOW_UPLOAD = 102;
-	private static final int NOT_ALLOW_UPLOAD = 103;
+	public static final int REQUEST_UPLOAD = 101;
+	public static final int ALLOW_UPLOAD = 102;
+	public static final int NOT_ALLOW_UPLOAD = 103;
 
-	private static final int REQUEST_CHECK_CHUNK = 104;
-	private static final int CHUNK_EXIST = 105;
-	private static final int CHUNK_NOT_EXIST = 106;
+	public static final int REQUEST_CHECK_CHUNK = 104;
+	public static final int CHUNK_EXIST = 105;
+	public static final int CHUNK_NOT_EXIST = 106;
 
-	private static final int REQUEST_CHECK_ZERO_CHUNK = 107;
-	private static final int LOGICAL_CHUNK_INCREMENT = 108;
-	private static final int ZERO_CHUNK_NOT_EXIST = 109;
+	public static final int REQUEST_CHECK_ZERO_CHUNK = 107;
+	public static final int LOGICAL_CHUNK_INCREMENT = 108;
+	public static final int ZERO_CHUNK_NOT_EXIST = 109;
 
-	private static final int REQUEST_SAVE_CHUNK = 110;
-	private static final int CHUNK_SAVED = 111;
-	private static final int CHUNK_NOT_SAVED = 112;
+	public static final int REQUEST_SAVE_CHUNK = 110;
+	public static final int CHUNK_SAVED = 111;
+	public static final int CHUNK_NOT_SAVED = 112;
 
-	private static final int REQUEST_UPLOAD_END = 199;
+	public static final int REQUEST_UPLOAD_END = 199;
 
 	// Protocol - Download
-	private static final int REQUEST_DOWNLOAD = 201;
-	private static final int ALLOW_DOWNLOAD = 202;
-	private static final int NOT_ALLOW_DOWNLOAD = 203;
+	public static final int REQUEST_DOWNLOAD = 201;
+	public static final int ALLOW_DOWNLOAD = 202;
+	public static final int NOT_ALLOW_DOWNLOAD = 203;
 
-	private static final int CHUNK_START = 204;
-	private static final int CHUNK_END = 205;
+	public static final int CHUNK_START = 204;
+	public static final int CHUNK_END = 205;
 
-	private static final int REQUEST_DOWNLOAD_END = 299;
+	public static final int REQUEST_DOWNLOAD_END = 299;
 
 	// Protocol - Delete
-	private static final int REQUEST_DELETE = 301;
-	private static final int DELETE_SUCCESS = 302;
-	private static final int DELETE_NOT_SUCCESS = 303;
-	private static final int DELETE_FILE_NOT_EXIST = 304;
+	public static final int REQUEST_DELETE = 301;
+	public static final int DELETE_SUCCESS = 302;
+	public static final int DELETE_NOT_SUCCESS = 303;
+	public static final int DELETE_FILE_NOT_EXIST = 304;
 
-	private static final int REQUEST_DELETE_END = 399;
+	public static final int REQUEST_DELETE_END = 399;
 
 	// Protocol - List
-	private static final int REQUEST_LIST = 401;
-	private static final int LIST_NO_FILE = 402;
-	private static final int LIST_ALLOW = 403;
+	public static final int REQUEST_LIST = 401;
+	public static final int LIST_NO_FILE = 402;
+	public static final int LIST_ALLOW = 403;
 
-	private static final int REQUEST_LIST_END = 499;
+	public static final int REQUEST_LIST_END = 499;
+	
+	// Protocol - Error Code
+	public static final int NO_ERROR = 900;
+	public static final int SAME_FILENAME_EXIST = 901;
+	public static final int UNKNOWN_ERROR = 999;
+	
 
 	public static String translateMsgCode(int msgCode) {
 		switch (msgCode) {
@@ -132,40 +143,12 @@ public class Client {
 		}
 	}
 
-	public byte rfp(ArrayList<Byte> data, int s, int windowSize, int base, int modulus) {
-		if (s == 0) {
-			int sum = 0;
-			// System.out.println("s = 0,");
-			for (int i = 1; i <= windowSize; i++) {
-				int value = (int) data.get(i - 1);
-				int power = (int) (Math.pow(base, windowSize - i));
-				sum = sum + value * power;
-				// System.out.println("i = "+i+",value = "+value+" power = "+power);
-			}
-			// System.out.println("S=0, Sum "+sum);
-			sum = sum % modulus;
-			byte result = (byte) sum;
-			this.fingerprintList.add(0, result);
-			return result;
-		} else {
-			int sum = base * (this.fingerprintList.get(s - 1) - (int) (Math.pow(base, windowSize - 1)) * data.get(0))
-					+ data.get(windowSize);
-			// System.out.println("result "+result );
-			sum = sum % modulus;
-			if (sum < 0)
-				sum = sum + modulus;
-			byte result = (byte) sum;
-			this.fingerprintList.add(s, result);
-			return result;
-		}
-	}
-
 	public Client(String host, int port) throws UnknownHostException, IOException {
-		
+		System.out.println("Client - start connection..");
 		this.socket = new Socket(host, port);
 		this.dis = new DataInputStream(this.socket.getInputStream());
 		this.dos = new DataOutputStream(this.socket.getOutputStream());
-		
+		System.out.println("Client - connection has set up.");
 	}
 
 	public void sendString(String msg) throws IOException {
@@ -284,51 +267,15 @@ public class Client {
 		this.dis.close();
 		this.dos.close();
 		this.socket.close();
+		System.out.println("Client - Stream and socket closed.");
 	}
 
 	public void reconnect(String host, int port) throws IOException {
+		System.out.println("Client - Start reconnecting...");
 		this.socket = new Socket(host, port);
 		this.dis = new DataInputStream(this.socket.getInputStream());
 		this.dos = new DataOutputStream(this.socket.getOutputStream());
-	}
-
-	public static boolean checkArgs(String[] args) {
-		if (args.length <= 1) {
-			System.err.println("client [Server IP] [Action] [filename]");
-			return false;
-		}
-		switch (args[1]) {
-		case "upload":
-			if (args.length != 7) {
-				System.out.println("Wrong input args format!");
-				System.err.println("client [Server IP] upload [filename] [min_chunk] [d] [average_chunk] [max_chunk]");
-				return false;
-			}
-			return true;
-		case "download":
-			if (args.length != 4) {
-				System.out.println("Wrong input args format!");
-				System.out.println("client [Server IP] download [cloud file Path] [local file Path]");
-				return false;
-			}
-			return true;
-		case "delete":
-			if (args.length != 3) {
-				System.out.println("Wrong input args format!");
-				System.out.println("Client [Server IP] delete [filename]");
-				return false;
-			}
-			return true;
-		case "list":
-			if (args.length != 2) {
-				System.out.println("Wrong input args format!");
-				System.out.println("Client [Server IP] list");
-				return false;
-			}
-			return true;
-		default:
-			return false;
-		}
+		System.out.println("Client - Reconnect complete. Connection set up.");
 	}
 
 	public int receiveMsgCode() throws IOException {
@@ -345,19 +292,25 @@ public class Client {
 		return received;
 	}
 
-	public void upload(String path, int min_chunk, int d, int average_chunk, int max_chunk)
+	public int upload(String path, int min_chunk, int d, int average_chunk, int max_chunk, JProgressBar bar, JLabel label)
 			throws IOException, NoSuchAlgorithmException {
+		Timer timer = new Timer("upload");
+		timer.start();
 		System.out.println("Client : Action - Upload");
 		int permission = this.getUploadPermission(path);
 		if (permission == ALLOW_UPLOAD) {
 			// TODO modify the min_chunk, d, average_chunk, max_chunk
-			sendChunks(path, min_chunk, d, average_chunk, max_chunk);
+			sendChunks(path, min_chunk, d, average_chunk, max_chunk, bar,label);
+			return NO_ERROR;
 		} else if (permission == NOT_ALLOW_UPLOAD) {
 			System.out.println("Filename exist. Not allow to upload this file.");
+			return SAME_FILENAME_EXIST;
 		}
+		return UNKNOWN_ERROR;
 	}
 
-	public void download(String filename, String localFilePath) throws IOException {
+	public void download(String filename, String localFilePath, 
+			JLabel current, JLabel total, JLabel time, JProgressBar bar) throws IOException {		
 		System.out.println("Client : Action - Download");
 		int permission = this.getDownloadPermission(filename);
 		FileOutputStream out = null;
@@ -365,6 +318,10 @@ public class Client {
 		if (permission == ALLOW_DOWNLOAD) {
 			int numberOfChunk = this.dis.readInt();
 			System.out.println("[FROM Server] Number of chunks = " + numberOfChunk);
+			
+			Long startTime = System.nanoTime();
+			bar.setMaximum(numberOfChunk);
+			total.setText(String.valueOf(numberOfChunk));
 
 			File targetFile = new File(localFilePath);
 			targetFile.createNewFile();
@@ -391,6 +348,12 @@ public class Client {
 					// To ensure the chunk is complete
 					if (receiveMsgCode() == CHUNK_END) {
 						System.out.println("Progress : "+(i+1)+"/"+numberOfChunk);
+						Long passedTime = System.nanoTime() - startTime;
+						Long remainingTime = passedTime * numberOfChunk / (i+1)- passedTime;
+						Long remainingSecond = TimeUnit.SECONDS.convert(remainingTime, TimeUnit.NANOSECONDS);
+						current.setText(String.valueOf(i+1));
+						time.setText(remainingSecond+"s");
+						bar.setValue(i+1);
 						continue;
 					} else {
 						System.out.println("Chunk transfer broken.");
@@ -406,6 +369,7 @@ public class Client {
 			if (out != null) {
 				out.close();
 				System.out.println(localFilePath + " Success Downloaded.");
+				time.setText("Success Downloaded");
 			}
 			this.socket.close();
 
@@ -414,20 +378,28 @@ public class Client {
 		}
 	}
 
-	public void sendChunks(String pathname, int min_chunk, int base, int modulus, int max_chunk)
+	public void sendChunks(String pathname, int min_chunk, int base, int modulus, int max_chunk, JProgressBar bar, JLabel label)
 			throws IOException, NoSuchAlgorithmException {
+		Timer chunksTimer = new Timer("sendChunks");
+		chunksTimer.start();
+		
+		
 		File file = new File(pathname);
 		FileInputStream in = null;
-		ArrayList<Byte> window = new ArrayList<>();
 		ArrayList<Byte> content = new ArrayList<>();
+		
+		RabinKarpSlided rabinKarp = new RabinKarpSlided(min_chunk,base,modulus);
 
 		int counter = -min_chunk;
 		int zeroCounter = 0;
 		String checksum;
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 
-		int progressMax = (int) file.length() - min_chunk;
+		int progressMax = (int) file.length();
 		int progressOnePercent = (int) progressMax / 100;
+		bar.setMaximum(progressMax);
+		Long startTime = System.nanoTime();
+		label.setText("Estimating...");
 
 		try {
 			in = new FileInputStream(file);
@@ -436,17 +408,25 @@ public class Client {
 			byte c;
 			while ((b = in.read()) != -1) {
 				c = (byte) b;
-				window.add(c);
+				
+				int result = rabinKarp.pushByte(c);
 				content.add(c);
 				counter++;
-
-				if (b == 48) {
+				
+				bar.setValue(counter);
+				if (counter % progressOnePercent == 0 && counter != 0) {
+					Long passedTime = System.nanoTime() - startTime;
+					Long remainingTime = passedTime * progressMax / counter - passedTime;
+					Long remainingSecond = TimeUnit.SECONDS.convert(remainingTime, TimeUnit.NANOSECONDS);
+					label.setText(remainingSecond+"s");
+				}
+				
+				if (b == 48) {	
 					zeroCounter++;
 					if (zeroCounter >= min_chunk) {
 
-						@SuppressWarnings("unused")
-						byte dummy = rfp(window, counter, min_chunk, base, modulus);
-
+						Timer zeroTimer = new Timer("Zero Chunk Treat");
+						zeroTimer.start();
 						// first output the content that not are zero
 						@SuppressWarnings("unchecked")
 						ArrayList<Byte> beforeContent = (ArrayList<Byte>) content.clone();
@@ -456,9 +436,13 @@ public class Client {
 							md.update(content.toString().getBytes());
 							byte[] checksumByte = md.digest();
 
-							checksum = String.format("%064x", new BigInteger(1, checksumByte));
+							StringBuilder sb = new StringBuilder();
+							for (int i = 0;i<checksumByte.length;i++) {
+								sb.append(Integer.toString((checksumByte[i] & 0xff) + 0x100, 16).substring(1));
+							}
+							checksum = sb.toString();
 							// TODO Remove the below line for optimization
-							System.out.println("Checksum = " + checksum);
+							//System.out.println("Checksum = " + checksum);
 
 							int reply = getChunkStatus(checksum);
 							if (reply == CHUNK_EXIST) {
@@ -468,9 +452,6 @@ public class Client {
 								createSingleChunk(content, checksum);
 							}
 							content.clear();
-							if (window.size() >= min_chunk + 1) {
-								window.remove(0);
-							}
 							continue;
 						}
 
@@ -480,32 +461,36 @@ public class Client {
 							sendPureRequest(REQUEST_CHECK_ZERO_CHUNK);
 						}
 						content.clear();
+						
+						zeroTimer.stop();
+						zeroTimer.milisecond();
+						
 						continue;
+						
+						
 					}
+					
 				} else {
 					if (zeroCounter >= min_chunk) {
 						sendPureRequest(LOGICAL_CHUNK_INCREMENT);
 					}
 					zeroCounter = 0;
 				}
-
+				
 				if (counter >= 0 && zeroCounter < min_chunk) {
-					byte result = rfp(window, counter, min_chunk, base, modulus);
-
-					// TODO optimize the progress bar
-					if (progressOnePercent != 0 && counter % progressOnePercent == 0
-							&& counter / progressOnePercent != 100)
-						System.out.println("Progess = " + counter + " / " + (int) progressMax + "     "
-								+ counter / progressOnePercent + "%");
-
 					if ((result == 0 && content.size() >= min_chunk) || (content.size() == max_chunk)) {
+						
 						md.update(content.toString().getBytes());
 						byte[] checksumByte = md.digest();
 
-						checksum = String.format("%064x", new BigInteger(1, checksumByte));
+						StringBuilder sb = new StringBuilder();
+						for (int i = 0;i<checksumByte.length;i++) {
+							sb.append(Integer.toString((checksumByte[i] & 0xff) + 0x100, 16).substring(1));
+						}
+						checksum = sb.toString();
 
 						// TODO Remove the below line for optimization
-						System.out.println("Checksum = " + checksum);
+						//System.out.println("Checksum = " + checksum);
 
 						int reply = getChunkStatus(checksum);
 						if (reply == CHUNK_EXIST) {
@@ -514,13 +499,10 @@ public class Client {
 							// System.out.println("===========================");
 							createSingleChunk(content, checksum);
 						}
-						content.clear();
+						content.clear();	
 					}
 				}
-
-				if (window.size() >= min_chunk + 1) {
-					window.remove(0);
-				}
+				
 
 			}
 		} catch (FileNotFoundException fe) {
@@ -529,18 +511,27 @@ public class Client {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 		if (in != null)
 			in.close();
+		
+		Timer endTimer = new Timer("ending chunk");
+		endTimer.start();
 		if (content.size() != 0) {
-
-			String temp = content.toString();
-			md.update(temp.getBytes());
+			
+			md.update(content.toString().getBytes());
 			byte[] checksumByte = md.digest();
-
-			checksum = String.format("%064x", new BigInteger(1, checksumByte));
+			
+			// credit to https://github.com/mist3rr0b0t/Rabin-Fingerprint-Deduplication/blob/master/MyDedup.java
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0;i<checksumByte.length;i++) {
+				sb.append(Integer.toString((checksumByte[i] & 0xff) + 0x100, 16).substring(1));
+			}
+			checksum = sb.toString();
+			
 			// TODO Remove the below line for optimization
 			System.out.println("Checksum = " + checksum);
-
+			
 			int reply = getChunkStatus(checksum);
 			if (reply == CHUNK_EXIST) {
 				// System.out.println("========Chunk exist========");
@@ -550,8 +541,10 @@ public class Client {
 			}
 			content.clear();
 		}
+
 		// close the upload process by sending REQUEST_UPLOAD_END
-		System.out.println("Progess = " + progressMax + " / " + progressMax + "    100%");
+		bar.setValue(bar.getMaximum());
+		label.setText("Upload Complete");
 		endUpload();
 	}
 
@@ -619,36 +612,5 @@ public class Client {
 		}
 		
 
-	}
-
-	public static void main(String[] args) throws IOException {
-		if (!checkArgs(args)) {
-			return;
-		}
-
-		Client client = new Client(args[0], 59090);
-		try {
-			switch (args[1]) {
-			case "upload":
-				client.upload(args[2], Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer.parseInt(args[5]),
-						Integer.parseInt(args[6]));
-				break;
-			case "download":
-				client.download(args[2], args[3]);
-				break;
-			case "delete":
-				client.delete(args[2]);
-				break;
-			case "list":
-				client.list();
-				break;
-			default:
-				System.out.println("No command");
-			}
-			// client.sendFile("test1.txt");
-			// System.out.println("File - "+"test1.txt"+" sent successfully.");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }
