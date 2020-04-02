@@ -1,8 +1,12 @@
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Map;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.io.*;
 
 public class Server extends Thread {
@@ -201,8 +205,12 @@ public class Server extends Thread {
 		try {
 			this.serverSocket = new ServerSocket(port);
 			System.out.println("The data server is still running... ");
-			System.out.println("Running at : " + InetAddress.getLocalHost().getHostAddress());
-		} catch (Exception e) {
+			System.out.print("Running at : \n" + InetAddress.getLocalHost().getHostAddress());
+			Socket socket = new Socket();
+			socket.connect(new InetSocketAddress("google.com", 80));
+			System.out.print("		OR \n"+socket.getLocalAddress().toString().replace("/", "")+"\n");
+		} 
+		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -416,7 +424,11 @@ public class Server extends Thread {
 					System.out.println("[Server] End Connection.");
 					break;
 				}
-			} catch (Exception e) {
+			} catch (NullPointerException npe) {
+				System.out.println("The port is used. Please check any program running at 59090");
+				System.exit(1);
+			}
+			catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -515,7 +527,7 @@ public class Server extends Thread {
 		}
 		int received = this.dis.readInt();
 		//this.dos.writeUTF("[FROM Server] Message Code received. Content:" + translateMsgCode(received));
-		//System.out.println("[FROM Client] Message code received. Content:"+translateMsgCode(received));
+		System.out.println("[FROM Client] Message code received. Content:"+translateMsgCode(received));
 		return received;
 	}
 	

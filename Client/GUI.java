@@ -45,6 +45,10 @@ public class GUI {
 	private JTextField txtMaxChunk;
 	private JTable table;
 	private JTextField filePathTextField;
+	
+	private Thread uploadThread;
+	private volatile boolean kill = false;
+	
 
 	// Credit from :
 	// https://www.codejava.net/java-se/swing/redirect-standard-output-streams-to-jtextarea
@@ -184,10 +188,18 @@ public class GUI {
 									Container cards = frame.getContentPane();
 									CardLayout cl = (CardLayout) cards.getLayout();
 									cl.show(cards, "Home");
+									System.out.println("GUI - [Page] Home");
 								} catch (ConnectException e3) {
 									lblConnecting.setVisible(false);
-									JOptionPane.showMessageDialog(null, "Connection timed out","ERROR", JOptionPane.ERROR_MESSAGE);
-									System.out.println("Connection timed out");
+									if (e3.getLocalizedMessage().equals("Connection refused (Connection refused)")) {
+										JOptionPane.showMessageDialog(null, "Connection refused","ERROR", JOptionPane.ERROR_MESSAGE);
+										System.out.println("GUI - ERROR - Connection refused.");
+									
+									} else {
+										JOptionPane.showMessageDialog(null, "Connection timed out","ERROR", JOptionPane.ERROR_MESSAGE);
+										System.out.println("GUI - ERROR - Connection timed out");
+									}
+									System.out.println("GUI - TEST - "+e3.getLocalizedMessage());
 									e3.printStackTrace();
 								}
 								catch (IOException e1) {
@@ -247,7 +259,7 @@ public class GUI {
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "Home");
-					System.out.println("GUI - Home Page.");
+					System.out.println("GUI - [Page] Home Page.");
 					
 				} catch (IOException e1) {
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
@@ -257,7 +269,7 @@ public class GUI {
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "IP Address");
 					e1.printStackTrace();
-					System.out.println("GUI - IP Address Page.");
+					System.out.println("GUI - [Page] IP Address Page.");
 				}
 			}
 		});
@@ -353,9 +365,9 @@ public class GUI {
 						Container cards = frame.getContentPane();
 						CardLayout cl = (CardLayout) cards.getLayout();
 						cl.show(cards, "Upload Progress");
-						System.out.println("GUI - Upload Progress");
-
-						(new Thread() {
+						System.out.println("GUI - [Page] Upload Progress");
+						
+						uploadThread = new Thread() {
 							public void run() {
 								System.out.println("GUI - Start Thread (Upload)...");
 								try {
@@ -367,7 +379,7 @@ public class GUI {
 									} else if (result == Client.SAME_FILENAME_EXIST) {
 										JOptionPane.showMessageDialog(null, "Filename already exist in server. No allow to upload","Filename exist", JOptionPane.ERROR_MESSAGE);
 									}
-								} catch (NumberFormatException nfe) {
+								}catch (NumberFormatException nfe) {
 									JOptionPane.showMessageDialog(null,
 											"Possible Reason:\n1.You enter leading zero\n2.The number is too large",
 											"NumberFormatException", JOptionPane.ERROR_MESSAGE);
@@ -378,10 +390,12 @@ public class GUI {
 								} catch (IOException e1) {
 									// TODO Auto-generated catch block
 									e1.printStackTrace();
-								}
+								} 
 								System.out.println("GUI - End Thread (Upload).");
 							}
-						}).start();
+						};
+						
+						uploadThread.start();
 					} catch (NumberFormatException nfe) {
 						JOptionPane.showMessageDialog(null,
 								"Possible Reason:\n1.You enter leading zero\n2.The number is too large",
@@ -476,17 +490,28 @@ public class GUI {
 		btnBack_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					/*if (uploadThread.isAlive()){
+						System.out.println("UploadThread end.");
+						uploadThread.interrupt();
+					}*/
+					System.out.println("GUI - Client start reconnect.");
 					client.close();
 					client.reconnect(address, 59090);
+					System.out.println("GUI - Client finish reconnect.");
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "Upload");
+					System.out.println("GUI - [Page] Upload");
 				} catch (IOException e1) {
+					System.out.println("GUI - Reconnection Failed.");
+					e1.printStackTrace();
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "IP Address");
-					e1.printStackTrace();
+					System.out.println("GUI - [Page] IP Address");
 				}
 			}
 		});
@@ -513,11 +538,15 @@ public class GUI {
 		btnBack_2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					System.out.println("GUI - Client start reconnect.");
 					client.close();
 					client.reconnect(address, 59090);
+					System.out.println("GUI - Client finish reconnect.");
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "Home");
+					System.out.println("GUI - [Page] Home");
 				} catch (IOException e1) {
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
 					Container cards = frame.getContentPane();
@@ -580,18 +609,27 @@ public class GUI {
 		btnBack_4.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					System.out.println("GUI - Client start reconnect.");
 					client.close();
 					client.reconnect(address, 59090);
+					System.out.println("GUI - Client finish reconnect.");
+					
 					model.setRowCount(0);
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "Home");
+					System.out.println("GUI - [Page] Home");
 				} catch (IOException e1) {
+					System.out.println("GUI - Reconnection Failed.");
+					e1.printStackTrace();
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "IP Address");
-					e1.printStackTrace();
+					System.out.println("GUI - [Page] IP Address");
+					
 				}
 			}
 		});
@@ -610,36 +648,50 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 
 				try {
+					System.out.println("GUI - Client start reconnect.");
 					client.close();
 					client.reconnect(address, 59090);
+					System.out.println("GUI - Client finish reconnect.");
 
 					int selectedRow = table.getSelectedRow();
 					String filename = (String) table.getValueAt(selectedRow, 0);
 
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					cl.show(cards, "Download Progress");
+					System.out.println("GUI - [Page] Download Progress");
+					
 					(new Thread() {
 						public void run() {
-							Container cards = frame.getContentPane();
-							CardLayout cl = (CardLayout) cards.getLayout();
-
+							System.out.println("GUI - Start Thread (download)... ");
 							try {
-								cl.show(cards, "Download Progress");
 								client.download(filename, filename, 
 										currentChunk, totalChunk, downloadTime, downloadProgressBar);
 
 							} catch (IOException e) {
+								System.out.println("GUI - ERROR - Connection Failed.");
+								e.printStackTrace();
+								
 								JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR",
 										JOptionPane.ERROR_MESSAGE);
+								
 								cl.show(cards, "IP Address");
+								System.out.println("GUI - [Page] IP Address");
 							}
+							System.out.println("GUI - End Thread (download)... ");
 						}
 					}).start();
 					model.setRowCount(0);
 
 				} catch (IOException e1) {
+					System.out.println("GUI - ERROR - Connection Failed.");
+					e1.printStackTrace();
 					JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					cl.show(cards, "IP Address");
+					System.out.println("GUI - [Page] IP Address");
 				}
 			}
 		});
@@ -651,9 +703,10 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 
 				try {
-
+					System.out.println("GUI - Client start reconnect.");
 					client.close();
 					client.reconnect(address, 59090);
+					System.out.println("GUI - Client finish reconnect.");
 
 					int selectedRow = table.getSelectedRow();
 					String filename = (String) table.getValueAt(selectedRow, 0);
@@ -661,16 +714,23 @@ public class GUI {
 
 					(new Thread() {
 						public void run() {
+							System.out.println("GUI - Start Thread (Delete)...");
 							try {
 								client.delete(filename);
 								model.removeRow(selectedRow);
 							} catch (IOException e) {
+								System.out.println("GUI - ERROR - Connection Failed.");
+								e.printStackTrace();
 								JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR",
 										JOptionPane.ERROR_MESSAGE);
+								
+								
 								Container cards = frame.getContentPane();
 								CardLayout cl = (CardLayout) cards.getLayout();
 								cl.show(cards, "IP Address");
+								System.out.println("GUI - [Page] IP Address");
 							}
+							System.out.println("GUI - End Thread (Delete).");
 						}
 					}).start();
 
@@ -699,9 +759,12 @@ public class GUI {
 		JButton btnUpload = new JButton("Upload");
 		btnUpload.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Upload Button Pressed");
+				
 				Container cards = frame.getContentPane();
 				CardLayout cl = (CardLayout) cards.getLayout();
 				cl.show(cards, "Upload");
+				System.out.println("GUI - [Page] Upload");
 			}
 		});
 		btnUpload.setBounds(166, 98, 117, 29);
@@ -711,33 +774,64 @@ public class GUI {
 		btnListFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
+				System.out.println("GUI - List File Button Pressed");
 				Container cards = frame.getContentPane();
 				CardLayout cl = (CardLayout) cards.getLayout();
 				cl.show(cards, "List");
+				System.out.println("GUI - [Page] List");
 
 				(new Thread() {
 					public void run() {
 						try {
-							ArrayList<String[]> data = client.list();
-							for (int i = 0; i < data.size(); i++) {
-								System.err.print(data.get(i)[1]);
-								
-								if (data.get(i)[1] == "/" && data.get(i)[0] == "Error Occur.") {
-									JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
-											JOptionPane.ERROR_MESSAGE);
-									cl.show(cards, "Home");
-									Thread.currentThread().interrupt();
-									break;
-								} else if (data.get(i)[1] == "/" && data.get(i)[0] == "No file in the server.") {
-									JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
-											JOptionPane.ERROR_MESSAGE);
-									cl.show(cards, "Home");
-									Thread.currentThread().interrupt();
-									break;
-								}
+							int list_protocol = client.list();
+							if (list_protocol == Client.LIST_RETREIVED){
+								ArrayList<String[]> data = client.fileList;
+								for (int i = 0; i < data.size(); i++) {
+									System.err.print(data.get(i)[1]);
+									
+									if (data.get(i)[1] == "/" && data.get(i)[0] == "Error Occur.") {
+										JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
+												JOptionPane.ERROR_MESSAGE);
+										cl.show(cards, "Home");
+										Thread.currentThread().interrupt();
+										break;
+									} else if (data.get(i)[1] == "/" && data.get(i)[0] == "No file in the server.") {
+										JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
+												JOptionPane.ERROR_MESSAGE);
+										cl.show(cards, "Home");
+										Thread.currentThread().interrupt();
+										break;
+									}
 
-								model.addRow(data.get(i));
+									model.addRow(data.get(i));
+								}
+							} else if (list_protocol == Client.LIST_NO_FILE) {
+								JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
+										JOptionPane.ERROR_MESSAGE);
+								cl.show(cards, "Home");
+								System.out.println("GUI - [Page] Home");
+								
+								System.out.println("GUI - Client start reconnect.");
+								client.close();
+								client.reconnect(address, 59090);
+								System.out.println("GUI - Client finish reconnect.");
+								
+								Thread.currentThread().interrupt();
+								
+							} else if (list_protocol == Client.LIST_RETREIVE_FAILED) {
+								JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
+										JOptionPane.ERROR_MESSAGE);
+								cl.show(cards, "Home");
+								System.out.println("GUI - [Page] Home");
+								
+								System.out.println("GUI - Client start reconnect.");
+								client.close();
+								client.reconnect(address, 59090);
+								System.out.println("GUI - Client finish reconnect.");
+								
+								Thread.currentThread().interrupt();
 							}
+							
 						} catch (IOException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();

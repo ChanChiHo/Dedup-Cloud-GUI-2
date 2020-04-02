@@ -24,6 +24,7 @@ public class Client {
 	private DataOutputStream dos;
 
 	public ArrayList<Byte> fingerprintList = new ArrayList<>();
+	ArrayList<String[]> fileList = new ArrayList<String[]>();
 
 	// Protocol - Connection failed
 	public static final int REQUEST_FAIL = 050;
@@ -69,6 +70,8 @@ public class Client {
 	public static final int REQUEST_LIST = 401;
 	public static final int LIST_NO_FILE = 402;
 	public static final int LIST_ALLOW = 403;
+	public static final int LIST_RETREIVED = 404;
+	public static final int LIST_RETREIVE_FAILED = 405;
 
 	public static final int REQUEST_LIST_END = 499;
 	
@@ -383,50 +386,61 @@ public class Client {
 		Timer chunksTimer = new Timer("sendChunks");
 		chunksTimer.start();
 		
-		
 		File file = new File(pathname);
 		FileInputStream in = null;
 		ArrayList<Byte> content = new ArrayList<>();
 		
 		RabinKarpSlided rabinKarp = new RabinKarpSlided(min_chunk,base,modulus);
 
-		int counter = -min_chunk;
+		int counter = 0;
 		int zeroCounter = 0;
 		String checksum;
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 
-		int progressMax = (int) file.length();
-		int progressOnePercent = (int) progressMax / 100;
+		int progressMax = (int) file.length() + min_chunk;
+		int progressOnePercent = (int) Math.min(progressMax / 100, 10000);
 		bar.setMaximum(progressMax);
-		Long startTime = System.nanoTime();
+		
+		Long startTime = (long) 0;
 		label.setText("Estimating...");
 
+		System.out.println("Client[Upload] - progressMax = "+progressMax);
+		
 		try {
 			in = new FileInputStream(file);
 
 			int b;
 			byte c;
 			while ((b = in.read()) != -1) {
+				
+				
 				c = (byte) b;
 				
 				int result = rabinKarp.pushByte(c);
+				
+				//System.out.println("Client[Upload] - Counter = "+counter+"/"+progressMax+" rfp = "+result);
 				content.add(c);
 				counter++;
 				
-				bar.setValue(counter);
-				if (counter % progressOnePercent == 0 && counter != 0) {
+				if (counter == min_chunk)
+					startTime = System.nanoTime();
+				
+				
+				if (counter % progressOnePercent == 0 && counter != 0 && counter >= min_chunk){
+					bar.setValue(counter);
+					
 					Long passedTime = System.nanoTime() - startTime;
 					Long remainingTime = passedTime * progressMax / counter - passedTime;
-					Long remainingSecond = TimeUnit.SECONDS.convert(remainingTime, TimeUnit.NANOSECONDS);
+					Long remainingSecond = remainingTime / 1000000000;
 					label.setText(remainingSecond+"s");
+					System.out.println("Client[Upload] - Counter = "+counter+"/"+progressMax);
+					
 				}
 				
 				if (b == 48) {	
 					zeroCounter++;
 					if (zeroCounter >= min_chunk) {
 
-						Timer zeroTimer = new Timer("Zero Chunk Treat");
-						zeroTimer.start();
 						// first output the content that not are zero
 						@SuppressWarnings("unchecked")
 						ArrayList<Byte> beforeContent = (ArrayList<Byte>) content.clone();
@@ -461,13 +475,7 @@ public class Client {
 							sendPureRequest(REQUEST_CHECK_ZERO_CHUNK);
 						}
 						content.clear();
-						
-						zeroTimer.stop();
-						zeroTimer.milisecond();
-						
 						continue;
-						
-						
 					}
 					
 				} else {
@@ -480,6 +488,8 @@ public class Client {
 				if (counter >= 0 && zeroCounter < min_chunk) {
 					if ((result == 0 && content.size() >= min_chunk) || (content.size() == max_chunk)) {
 						
+						System.out.println("Client[Upload] - Packing chunk..");
+						
 						md.update(content.toString().getBytes());
 						byte[] checksumByte = md.digest();
 
@@ -489,6 +499,7 @@ public class Client {
 						}
 						checksum = sb.toString();
 
+						System.out.println("Client[Upload] - checksum generated.");
 						// TODO Remove the below line for optimization
 						//System.out.println("Checksum = " + checksum);
 
@@ -499,10 +510,12 @@ public class Client {
 							// System.out.println("===========================");
 							createSingleChunk(content, checksum);
 						}
-						content.clear();	
+						content.clear();
+						
+						System.out.println("Client[Upload] - chunk sent.");
 					}
 				}
-				
+
 
 			}
 		} catch (FileNotFoundException fe) {
@@ -515,8 +528,6 @@ public class Client {
 		if (in != null)
 			in.close();
 		
-		Timer endTimer = new Timer("ending chunk");
-		endTimer.start();
 		if (content.size() != 0) {
 			
 			md.update(content.toString().getBytes());
@@ -569,22 +580,18 @@ public class Client {
 
 	}
 
-	public ArrayList<String[]> list() throws IOException {
+	public int list() throws IOException {
 		System.out.println("Client : Action - List file");
 		sendPureRequest(REQUEST_LIST);
 		
-		ArrayList<String[]> list = new ArrayList<String[]>();
+		fileList.clear();
 
 		int received = receiveMsgCode();
 		if (received == LIST_NO_FILE) {
-			System.out.println("No file in the server.");
-			String[] info = new String[2];
-			info[0] = "No file in the server.";
-			info[1] = "/";
-			list.add(info);
-			return list;
+			System.out.println("Client - No file in the server");
+			return LIST_NO_FILE;
 		} else if (received == LIST_ALLOW) {
-			
+			System.out.println("Client - retreiving file in the server");
 			System.out.println("Filename           Filesize");
 			String filename = this.dis.readUTF();
 			while (!filename.equals("??end")) {
@@ -596,19 +603,16 @@ public class Client {
 				info[0] = filename;
 				info[1] = filesize;
 				
-				list.add(info);
+				fileList.add(info);
 				
 				filename = this.dis.readUTF();
 			}
 			
-			return list;
+			return LIST_RETREIVED;
 		}
 		else {
-			String[] info = new String[2];
-			info[0] = "Error Occur.";
-			info[1] = "/";
-			list.add(info);
-			return list;
+			System.out.println("Client - List file - Unknown Error Occur.");
+			return LIST_RETREIVE_FAILED;
 		}
 		
 

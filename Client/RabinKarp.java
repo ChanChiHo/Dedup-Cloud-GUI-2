@@ -275,7 +275,6 @@ public class RabinKarp {
 			e.printStackTrace();
 		}
 		timer.stop();
-		timer.milisecond();
 		// Program End;
 		//System.out.println(Arrays.asList(obj.fingerprintList.toString()));
 
