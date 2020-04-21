@@ -1,4 +1,5 @@
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -59,6 +60,26 @@ class readObject{
 			System.out.println(temp2);
 			
 			iterator3.remove();
+		} 
+		
+		System.out.println("FilesizeList:");
+		Iterator<Map.Entry<String, Long>> iterator4 = temp.filesizeList.entrySet().iterator();
+		DecimalFormat df = new DecimalFormat("0.00");
+		while (iterator4.hasNext()){
+			Map.Entry<String, Long> pair = iterator4.next();
+			String temp2 = pair.getKey()+" ";
+			
+			if (pair.getValue() > 1024 * 1024) {
+				temp2 += df.format(pair.getValue()/1024.0F/ 1024.0F)+"MB";
+			} else if (pair.getValue() > 1024) {
+				temp2 += df.format(pair.getValue()/1024.0F)+"KB";
+			} else {
+				temp2 += df.format(pair.getValue())+"B";
+			}
+
+			System.out.println(temp2);
+			
+			iterator4.remove();
 		} 
 
 		System.out.println("==Index Reader==");

@@ -12,8 +12,11 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.ConnectException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -31,6 +34,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.JProgressBar;
 import java.awt.Font;
 import javax.swing.SwingConstants;
+import javax.swing.JPasswordField;
+import javax.swing.JComboBox;
 
 public class GUI {
 
@@ -46,8 +51,30 @@ public class GUI {
 	private JTable table;
 	private JTextField filePathTextField;
 	
+	private DefaultTableModel model;
+	private JProgressBar uploadProgressBar;
+	private JLabel estimateTimeLabel;
+	private JLabel currentChunk;
+	private JLabel totalChunk;
+	private JLabel downloadTime;
+	private JProgressBar downloadProgressBar;
+	private JLabel lblUsername_2;
+	private JLabel lblFilesize;
+	
+	private JComboBox minChunkUnit;
+	private JComboBox averageChunkUnit;
+	private JComboBox maxChunkUnit;
+	
+	
 	private Thread uploadThread;
-	private volatile boolean kill = false;
+	
+	private JTextField txtUsername;
+	private JPasswordField passwordField;
+	private JTextField usernameCreate;
+	private JPasswordField passwordField_1;
+	private JPasswordField passwordField_2;
+	
+	public String username;
 	
 
 	// Credit from :
@@ -138,20 +165,7 @@ public class GUI {
 		initialize();
 	}
 
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	private void initialize() {
-		frame = new JFrame();
-		frame.setResizable(false);
-		frame.setBounds(100, 100, 450, 300);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		frame.getContentPane().setLayout(new CardLayout(0, 0));
-
-		// Setting JPanel : Main Page, Upload Page, Upload Progress Page,
-		// Download Progress Page, List Page
-
+	private void initIpAddressPage() {
 		JPanel ipAddress = new JPanel();
 		frame.getContentPane().add(ipAddress, "IP Address");
 		ipAddress.setLayout(null);
@@ -180,15 +194,26 @@ public class GUI {
 					lblConnecting.setVisible(false);
 					return;
 				} else {
-					
 						(new Thread() {
 							public void run() {
 								try {
 									client = new Client(address, 59090);
-									Container cards = frame.getContentPane();
-									CardLayout cl = (CardLayout) cards.getLayout();
-									cl.show(cards, "Home");
-									System.out.println("GUI - [Page] Home");
+									
+									client.connect();
+									int result = client.heartbeat();
+									
+									if (result == Client.HEARTBEAT) {
+										Container cards = frame.getContentPane();
+										CardLayout cl = (CardLayout) cards.getLayout();
+										cl.show(cards, "Login");
+										System.out.println("GUI - [Page] Login <- IP Address");
+										lblConnecting.setVisible(false);
+									} else {
+										lblConnecting.setVisible(false);
+										JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+										System.out.println("GUI - Connection Failed");
+									}
+									
 								} catch (ConnectException e3) {
 									lblConnecting.setVisible(false);
 									if (e3.getLocalizedMessage().equals("Connection refused (Connection refused)")) {
@@ -227,21 +252,465 @@ public class GUI {
 				System.exit(0);
 			}
 		});
-		btnExit_1.setBounds(156, 225, 117, 29);
+		btnExit_1.setBounds(327, 243, 117, 29);
 		ipAddress.add(btnExit_1);
-
+	}
+	
+	private void initLoginPage() {
+		JPanel loginPage = new JPanel();
+		frame.getContentPane().add(loginPage, "Login");
+		loginPage.setLayout(null);
+		
+		JLabel lblLoginPage = new JLabel("Login Page");
+		lblLoginPage.setBounds(179, 35, 75, 16);
+		loginPage.add(lblLoginPage);
+		
+		JLabel lblUsername = new JLabel("Username:");
+		lblUsername.setBounds(118, 100, 74, 16);
+		loginPage.add(lblUsername);
+		
+		txtUsername = new JTextField();
+		txtUsername.setBounds(205, 95, 130, 26);
+		loginPage.add(txtUsername);
+		txtUsername.setColumns(10);
+		
+		JLabel lblPassword = new JLabel("Password:");
+		lblPassword.setBounds(118, 128, 75, 16);
+		loginPage.add(lblPassword);
+		
+		JButton btnLogin = new JButton("Login");
+		btnLogin.setBounds(205, 156, 130, 29);
+		btnLogin.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					client.connect(address, 59090);
+					int result = client.login(txtUsername.getText(), new String(passwordField.getPassword()));
+					client.close();
+					//client.reconnect(address, 59090);
+					
+					if (result == Client.LOGIN_SUCCESS) {
+						Container cards = frame.getContentPane();
+						CardLayout cl = (CardLayout) cards.getLayout();
+						cl.show(cards, "Home");
+						System.out.println("GUI - [Page] Home <- Login");
+						
+						username  = txtUsername.getText();
+						lblUsername_2.setText(username);
+						
+					} else if (result == Client.NO_USERNAME) {
+						JOptionPane.showMessageDialog(null, "Login Failed: Username not exist", "ERROR", JOptionPane.ERROR_MESSAGE);
+					} else if (result == Client.PASSWORD_WRONG) {
+						JOptionPane.showMessageDialog(null, "Login Failed: Password not correct", "ERROR", JOptionPane.ERROR_MESSAGE);
+					}
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(null, "Login Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+				} catch (NoSuchAlgorithmException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		loginPage.add(btnLogin);
+		
+		JButton btnBack_3 = new JButton("Back");
+		btnBack_3.setBounds(6, 243, 117, 29);
+		btnBack_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					client.connect();
+					int result = client.heartbeat();
+					client.close();
+						
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+				} catch (IOException e1) {
+					System.out.println("GUI - Connection Failed.");
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					cl.show(cards, "IP Address");
+					System.out.println("GUI - [Page] IP Address <- Login");
+				}
+			}
+		});
+		loginPage.add(btnBack_3);
+		
+		JSeparator separator = new JSeparator();
+		separator.setBounds(118, 117, 217, 12);
+		loginPage.add(separator);
+		
+		passwordField = new JPasswordField();
+		passwordField.setBounds(205, 123, 130, 26);
+		loginPage.add(passwordField);
+		
+		JButton btnExit_2 = new JButton("Exit");
+		btnExit_2.setBounds(327, 243, 117, 29);
+		btnExit_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Exit");
+				System.exit(0);
+			}
+		});
+		loginPage.add(btnExit_2);
+		
+		JButton btnCreateAccount = new JButton("Create Account");
+		btnCreateAccount.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Container cards = frame.getContentPane();
+				CardLayout cl = (CardLayout) cards.getLayout();
+				cl.show(cards, "Create User");
+				System.out.println("GUI - [Page] Create User");
+			}
+		});
+		btnCreateAccount.setBounds(205, 186, 130, 29);
+		loginPage.add(btnCreateAccount);
+	}
+	
+	private void initCreateUserPage() {
+		JPanel createUserPage = new JPanel();
+		frame.getContentPane().add(createUserPage,"Create User");
+		createUserPage.setLayout(null);
+		
+		JLabel lblCreateUserPage = new JLabel("New User");
+		lblCreateUserPage.setBounds(189, 22, 115, 16);
+		createUserPage.add(lblCreateUserPage);
+		
+		JButton btnExit_3 = new JButton("Exit");
+		btnExit_3.setBounds(327, 243, 117, 29);
+		btnExit_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Exit");
+				System.exit(0);
+			}
+		});
+		createUserPage.add(btnExit_3);
+		
+		JButton btnBack_5 = new JButton("Back");
+		btnBack_5.setBounds(6, 243, 117, 29);
+		btnBack_5.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					client.connect();
+					int result = client.heartbeat();
+					client.close();
+						
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "Login");
+						System.out.println("GUI - [Page] Login <- Create User");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+					
+				} catch (IOException e1) {
+					System.out.println("GUI - Reconnection Failed.");
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					cl.show(cards, "IP Address");
+					System.out.println("GUI - [Page] IP Address <- Create User");
+				}
+			}
+		});
+		createUserPage.add(btnBack_5);
+		
+		usernameCreate = new JTextField();
+		usernameCreate.setBounds(209, 69, 130, 26);
+		createUserPage.add(usernameCreate);
+		usernameCreate.setColumns(10);
+		
+		passwordField_1 = new JPasswordField();
+		passwordField_1.setBounds(209, 107, 130, 26);
+		createUserPage.add(passwordField_1);
+		
+		passwordField_2 = new JPasswordField();
+		passwordField_2.setBounds(209, 143, 130, 26);
+		createUserPage.add(passwordField_2);
+		
+		JLabel lblUsername_1 = new JLabel("Username:");
+		lblUsername_1.setBounds(73, 74, 80, 16);
+		createUserPage.add(lblUsername_1);
+		
+		JLabel lblPassword_1 = new JLabel("Password:");
+		lblPassword_1.setBounds(73, 111, 80, 16);
+		createUserPage.add(lblPassword_1);
+		
+		JLabel lblConfirmPassword = new JLabel("Confirm Password:");
+		lblConfirmPassword.setBounds(73, 149, 131, 16);
+		createUserPage.add(lblConfirmPassword);
+		
+		JSeparator separator = new JSeparator();
+		separator.setBounds(66, 94, 305, 12);
+		createUserPage.add(separator);
+		
+		JSeparator separator_1 = new JSeparator();
+		separator_1.setBounds(66, 133, 305, 12);
+		createUserPage.add(separator_1);
+		
+		JButton btnSubmit = new JButton("Submit");
+		btnSubmit.setBounds(209, 191, 130, 29);
+		btnSubmit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Submit Create User Form");
+				if (Arrays.equals(passwordField_1.getPassword(), passwordField_2.getPassword())){
+					System.out.println("GUI - Password Vaild.");
+					
+					try {
+						client.connect(address, 59090);
+						int result = client.createUser(usernameCreate.getText(), new String(passwordField_1.getPassword()));
+						
+						usernameCreate.setText("");
+						passwordField_1.setText("");
+						passwordField_2.setText("");
+						
+						client.close();
+						
+						if (result == Client.USERNAME_EXIST) {
+							JOptionPane.showMessageDialog(null, "Username exist. Please use another username", "Creation Failed", JOptionPane.ERROR_MESSAGE);
+							
+							
+							return;
+						} else if (result == Client.USER_CREATED) {	
+							JOptionPane.showMessageDialog(null, "Account Created. Redirect to Login Page.", "SUCCESS", JOptionPane.INFORMATION_MESSAGE);
+							
+							Container cards = frame.getContentPane();
+							CardLayout cl = (CardLayout) cards.getLayout();
+							cl.show(cards, "Login");
+							System.out.println("GUI - [Page] Login");
+						}
+						
+						
+					} catch (IOException e1) {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						System.out.println("GUI - Connection Failed.");
+						
+						Container cards = frame.getContentPane();
+						CardLayout cl = (CardLayout) cards.getLayout();
+						cl.show(cards, "IP Address");
+						e1.printStackTrace();
+						System.out.println("GUI - [Page] IP Address Page.");
+						
+						e1.printStackTrace();
+					}
+					
+					
+				}
+				else {
+					System.out.println("GUI - Password not same.");
+					JOptionPane.showMessageDialog(null, "Password is not the same.", "ERROR", JOptionPane.ERROR_MESSAGE);
+				}
+				
+			}
+			
+		});
+		createUserPage.add(btnSubmit);
+		
+		
+	}
+	
+	private void initHomePage() {
 		JPanel home = new JPanel();
 		frame.getContentPane().add(home, "Home");
 		home.setLayout(null);
+		
+		JLabel lblClientProgramFor = new JLabel("Client Program for Deduplication Cloud");
+		lblClientProgramFor.setBounds(100, 16, 248, 16);
+		home.add(lblClientProgramFor);
 
+		JButton btnUpload = new JButton("Upload");
+		btnUpload.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Upload Button Pressed");
+				
+				Container cards = frame.getContentPane();
+				CardLayout cl = (CardLayout) cards.getLayout();
+				cl.show(cards, "Upload");
+				System.out.println("GUI - [Page] Upload <- Home");
+			}
+		});
+		btnUpload.setBounds(166, 98, 117, 29);
+		home.add(btnUpload);
+
+		JButton btnListFile = new JButton("List File");
+		btnListFile.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+
+				System.out.println("GUI - List File Button Pressed");
+				Container cards = frame.getContentPane();
+				CardLayout cl = (CardLayout) cards.getLayout();
+				cl.show(cards, "List");
+				System.out.println("GUI - [Page] List <- Home");
+								
+				(new Thread() {
+					public void run() {
+						try {
+							client.connect(address, 59090);
+							int list_protocol = client.list();
+							client.close();
+							System.out.println("GUI - Client close connection");
+							
+							System.out.println("GUI - Received protocol = "+list_protocol);
+							
+							if (list_protocol == Client.NOT_AUTHORIZED) {
+								JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+								cl.show(cards, "Login");
+								System.out.println("GUI - [Page] Login <- List");
+								return;
+							}
+							
+							if (list_protocol == Client.LIST_RETREIVED){
+								ArrayList<String[]> data = client.fileList;
+								for (int i = 0; i < data.size(); i++) {
+									model.addRow(data.get(i));
+								}
+								
+							} else if (list_protocol == Client.LIST_NO_FILE) {
+								JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
+										JOptionPane.ERROR_MESSAGE);
+								cl.show(cards, "Home");
+								System.out.println("GUI - [Page] Home <- List");
+								
+								
+								Thread.currentThread().interrupt();
+								
+							} else if (list_protocol == Client.LIST_RETREIVE_FAILED) {
+								JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
+										JOptionPane.ERROR_MESSAGE);
+								cl.show(cards, "Home");
+								System.out.println("GUI - [Page] Home <- List");
+							
+								Thread.currentThread().interrupt();
+							}
+							
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+							JOptionPane.showMessageDialog(null, "Connection Failed.","ERROR",JOptionPane.ERROR_MESSAGE);
+							cl.show(cards, "IP Address");
+							System.out.println("GUI - [Page] Login <- List");
+							
+							return;
+						}
+					}
+				}).start();
+
+			}
+		});
+		btnListFile.setBounds(166, 139, 117, 29);
+		home.add(btnListFile);
+
+		JButton btnExit = new JButton("Exit");
+		btnExit.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Exit");
+				System.exit(0);			
+			}
+		});
+		btnExit.setBounds(324, 242, 117, 29);
+		home.add(btnExit);
+		
+		JLabel lblYouAreLogged = new JLabel("You are logged in as:");
+		lblYouAreLogged.setBounds(197, 44, 151, 16);
+		home.add(lblYouAreLogged);
+		
+		lblUsername_2 = new JLabel("Username");
+		lblUsername_2.setBounds(347, 44, 94, 16);
+		home.add(lblUsername_2);
+	}
+	
+	
+	private void initUploadProgress() {
 		JPanel uploadProgress = new JPanel();
 		frame.getContentPane().add(uploadProgress, "Upload Progress");
 		uploadProgress.setLayout(null);
+		
+		uploadProgressBar = new JProgressBar(0,100);
+		uploadProgressBar.setBounds(6, 81, 438, 20);
+		uploadProgressBar.setValue(0);
+		uploadProgress.add(uploadProgressBar);
 
+		estimateTimeLabel = new JLabel("0s");
+		estimateTimeLabel.setBounds(112, 113, 189, 16);
+		uploadProgress.add(estimateTimeLabel);
+		
+		JButton btnBack_1 = new JButton("Back");
+		btnBack_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Back Button Pressed");
+				try {
+					/*if (uploadThread.isAlive()){
+						System.out.println("UploadThread end.");
+						uploadThread.interrupt();
+					}*/
+					
+					client.connect();
+					int result = client.heartbeat();
+					client.close();
+						
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "Upload");
+						System.out.println("GUI - [Page] Upload <- Upload Progress");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+					
+				} catch (IOException e1) {
+					System.out.println("GUI - Reconnection Failed.");
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
+					Container cards = frame.getContentPane();
+					CardLayout cl = (CardLayout) cards.getLayout();
+					cl.show(cards, "IP Address");
+					System.out.println("GUI - [Page] IP Address");
+				}
+			}
+		});
+		btnBack_1.setBounds(6, 243, 117, 29);
+		uploadProgress.add(btnBack_1);
+
+		JLabel lblUploading = new JLabel("Uploading...");
+		lblUploading.setBounds(184, 6, 84, 16);
+		uploadProgress.add(lblUploading);
+
+		JLabel lblEstimateTime = new JLabel("Estimate Time :");
+		lblEstimateTime.setBounds(6, 113, 108, 16);
+		uploadProgress.add(lblEstimateTime);
+	}
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private void initUploadPage() {
 		JPanel uploadPage = new JPanel();
 		frame.getContentPane().add(uploadPage, "Upload");
 		uploadPage.setLayout(null);
-
+		
 		JLabel lblUploadPage = new JLabel("Upload Page");
 		lblUploadPage.setBounds(175, 16, 111, 16);
 		uploadPage.add(lblUploadPage);
@@ -251,17 +720,25 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println("GUI - Back Button Pressed.");
 				try {
-					System.out.println("GUI - Client start reconnect.");
+					client.connect();
+					int result = client.heartbeat();
 					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
-					
+						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
-					cl.show(cards, "Home");
-					System.out.println("GUI - [Page] Home Page.");
 					
-				} catch (IOException e1) {
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "Home");
+						System.out.println("GUI - [Page] Home <- Upload");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+					
+					
+				} catch (Exception e1) {
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
 					System.out.println("GUI - Reconnection Failed.");
 					
@@ -273,7 +750,7 @@ public class GUI {
 				}
 			}
 		});
-		btnBack.setBounds(327, 243, 117, 29);
+		btnBack.setBounds(6, 243, 117, 29);
 		uploadPage.add(btnBack);
 
 		JLabel lblFilePath = new JLabel("File Name");
@@ -316,14 +793,7 @@ public class GUI {
 		separator_4.setBounds(40, 219, 372, 12);
 		uploadPage.add(separator_4);
 		
-		JProgressBar uploadProgressBar = new JProgressBar(0,100);
-		uploadProgressBar.setBounds(6, 81, 438, 20);
-		uploadProgressBar.setValue(0);
-		uploadProgress.add(uploadProgressBar);
-
-		JLabel estimateTimeLabel = new JLabel("0s");
-		estimateTimeLabel.setBounds(112, 113, 189, 16);
-		uploadProgress.add(estimateTimeLabel);
+		
 		
 		JButton btnUpload_1 = new JButton("Upload");
 		btnUpload_1.addActionListener(new ActionListener() {
@@ -348,18 +818,34 @@ public class GUI {
 				String averageChunk = txtAverageChunk.getText();
 				String maxChunk = txtMaxChunk.getText();
 
-				// System.out.println(minChunk + " " + d + " " + averageChunk + " " + maxChunk);
-
+				System.out.println(minChunk + " " + d + " " + averageChunk + " " + maxChunk);
+				
+				
 				if (filepath.isEmpty() || minChunk.isEmpty() || d.isEmpty() || averageChunk.isEmpty()
 						|| maxChunk.isEmpty()) {
 					JOptionPane.showMessageDialog(null, "Some field is empty!", "ERROR", JOptionPane.ERROR_MESSAGE);
 					System.out.println("GUI - ERROR - Empty Field Detected.");
+					return;
 				} else if (!isPositiveInteger(minChunk) || !isPositiveInteger(d) || !isPositiveInteger(averageChunk)
 						|| !isPositiveInteger(maxChunk)) {
 					JOptionPane.showMessageDialog(null, "You must enter positive integer for the 2nd to 5th field.",
 							"ERROR", JOptionPane.ERROR_MESSAGE);
+					System.out.println("GUI - ERROR - Negative number / non integer detected.");
+					return;
+				}
+				
+				int minChunkVal = (int) (Integer.parseInt(minChunk) * Math.pow(1024, minChunkUnit.getSelectedIndex()));
+				int dVal = Integer.parseInt(d);
+				int averageChunkVal = (int) (Integer.parseInt(averageChunk) * Math.pow(1024, averageChunkUnit.getSelectedIndex()));
+				int maxChunkVal = (int) (Integer.parseInt(maxChunk) * Math.pow(1024, maxChunkUnit.getSelectedIndex()));
+				
+				if (minChunkVal > averageChunkVal || minChunkVal > maxChunkVal || averageChunkVal > maxChunkVal){
+					JOptionPane.showMessageDialog(null, "The value of three variable must follow rule of : \nMinimum Chunk size < Average Chunk size < Maximum Chunk size",
+							"ERROR", JOptionPane.ERROR_MESSAGE);
 					System.out.println("GUI - ERROR - Negative number / not integer detected.");
+					return;
 				} else {
+				
 					try {
 
 						Container cards = frame.getContentPane();
@@ -370,14 +856,29 @@ public class GUI {
 						uploadThread = new Thread() {
 							public void run() {
 								System.out.println("GUI - Start Thread (Upload)...");
+								
+								
+								//System.out.println("Upload - "+minChunkVal+" "+dVal+" "+averageChunkVal+" "+maxChunkVal);
 								try {
-									int result = client.upload(filepath, Integer.parseInt(minChunk), Integer.parseInt(d),
-											Integer.parseInt(averageChunk), Integer.parseInt(maxChunk),
+									client.connect(address, 59090);
+									int result = client.upload(filepath, minChunkVal, dVal,
+											averageChunkVal, maxChunkVal,
 											uploadProgressBar,estimateTimeLabel);
+									System.out.println("GUI - Client close connection.");
+									client.close();
+									
 									if (result == Client.NO_ERROR) {
 										JOptionPane.showMessageDialog(null, "The file is uploaded!", "Notification", JOptionPane.PLAIN_MESSAGE);
 									} else if (result == Client.SAME_FILENAME_EXIST) {
 										JOptionPane.showMessageDialog(null, "Filename already exist in server. No allow to upload","Filename exist", JOptionPane.ERROR_MESSAGE);
+									} else if (result == Client.NOT_AUTHORIZED) {
+										JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+										cl.show(cards, "Login");
+										System.out.println("GUI - [Page] Login");
+										
+										
+										
+										//client.reconnect(address, 59090);
 									}
 								}catch (NumberFormatException nfe) {
 									JOptionPane.showMessageDialog(null,
@@ -413,22 +914,22 @@ public class GUI {
 		//uploadPage.add(chooserFilePath);
 
 		txtMinChunk = new JTextField();
-		txtMinChunk.setBounds(218, 109, 130, 26);
+		txtMinChunk.setBounds(192, 109, 78, 26);
 		uploadPage.add(txtMinChunk);
 		txtMinChunk.setColumns(10);
 
 		txtD = new JTextField();
-		txtD.setBounds(218, 139, 130, 26);
+		txtD.setBounds(192, 139, 78, 26);
 		uploadPage.add(txtD);
 		txtD.setColumns(10);
 
 		txtAverageChunk = new JTextField();
-		txtAverageChunk.setBounds(218, 169, 130, 26);
+		txtAverageChunk.setBounds(192, 169, 78, 26);
 		uploadPage.add(txtAverageChunk);
 		txtAverageChunk.setColumns(10);
 
 		txtMaxChunk = new JTextField();
-		txtMaxChunk.setBounds(218, 199, 130, 26);
+		txtMaxChunk.setBounds(192, 199, 78, 26);
 		uploadPage.add(txtMaxChunk);
 		txtMaxChunk.setColumns(10);
 
@@ -442,36 +943,53 @@ public class GUI {
 							System.out.println("GUI - Start Thread (set Text)...");
 							chooserFilePath.setSelectedFile(chooserFilePath.getSelectedFile());
 							filePathTextField.setText(chooserFilePath.getSelectedFile().getName());
+							
+							long filesize = chooserFilePath.getSelectedFile().length();
+							DecimalFormat df = new DecimalFormat("0.00");
+							StringBuilder sb = new StringBuilder("~");
+							if (filesize >= 1024 * 1024) {
+								sb.append(df.format(filesize / 1024.0F / 1024.0F));
+								sb.append(" MB");
+								minChunkUnit.setSelectedIndex(2);
+								averageChunkUnit.setSelectedIndex(2);
+								maxChunkUnit.setSelectedIndex(2);
+							} else if (filesize >= 1024) {
+								sb.append(df.format(filesize / 1024.0F));
+								sb.append(" KB");
+								minChunkUnit.setSelectedIndex(1);
+								averageChunkUnit.setSelectedIndex(1);
+								maxChunkUnit.setSelectedIndex(1);
+							} else if (filesize < 1024) {
+								sb.append(filesize);
+								sb.append(" B");
+								minChunkUnit.setSelectedIndex(0);
+								averageChunkUnit.setSelectedIndex(0);
+								maxChunkUnit.setSelectedIndex(0);
+							}
+							lblFilesize.setText(sb.toString());  
+							
 							System.out.println("GUI - End Thread (set Text).");
 						}
 					}).start();
 				}
 			}
 		});
-		btnOpen.setBounds(225, 75, 93, 29);
+		btnOpen.setBounds(338, 50, 93, 29);
 		uploadPage.add(btnOpen);
 
-		JLabel lblEg = new JLabel("E.g. 4096");
-		lblEg.setBounds(360, 114, 61, 16);
+		JLabel lblEg = new JLabel("E.g. 4KB/MB");
+		lblEg.setBounds(360, 114, 84, 16);
 		uploadPage.add(lblEg);
 
 		JLabel lblEg_1 = new JLabel("E.g. 257");
 		lblEg_1.setBounds(360, 144, 61, 16);
 		uploadPage.add(lblEg_1);
-
-		JLabel lblEg_2 = new JLabel("E.g.10000");
-		lblEg_2.setBounds(360, 174, 84, 16);
-		uploadPage.add(lblEg_2);
-
-		JLabel lblEg_3 = new JLabel("E.g. 40000");
-		lblEg_3.setBounds(360, 204, 84, 16);
-		uploadPage.add(lblEg_3);
 		
 		filePathTextField = new JTextField();
 		filePathTextField.setText("No File Selected.");
-		filePathTextField.setHorizontalAlignment(SwingConstants.LEFT);
+		filePathTextField.setHorizontalAlignment(SwingConstants.CENTER);
 		filePathTextField.setEditable(false);
-		filePathTextField.setBounds(185, 50, 236, 26);
+		filePathTextField.setBounds(109, 50, 236, 26);
 		uploadPage.add(filePathTextField);
 		filePathTextField.setColumns(10);
 		
@@ -481,55 +999,51 @@ public class GUI {
 				System.out.println("GUI - Reset Button Pressed.");
 				chooserFilePath.setSelectedFile(null);
 				filePathTextField.setText("No File Selected.");
+				lblFilesize.setText("File is not selected");
+
+				minChunkUnit.setSelectedIndex(0);
+				averageChunkUnit.setSelectedIndex(0);
+				maxChunkUnit.setSelectedIndex(0);
 			}
 		});
-		btnReset.setBounds(327, 75, 94, 29);
-		uploadPage.add(btnReset);;
+		btnReset.setBounds(338, 78, 94, 29);
+		uploadPage.add(btnReset);
+		
+		JLabel lblFileSize = new JLabel("File Size:");
+		lblFileSize.setBounds(41, 83, 61, 16);
+		uploadPage.add(lblFileSize);
+		
+		lblFilesize = new JLabel("File is not selected");
+		lblFilesize.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblFilesize.setBounds(119, 83, 196, 16);
+		uploadPage.add(lblFilesize);
+		
+		String[] size = {"B","KB","MB"};
+		DefaultComboBoxModel<String> comboModel = new DefaultComboBoxModel<>(size);
+		
+		
+		minChunkUnit = new JComboBox(size);
+		minChunkUnit.setBounds(271, 110, 84, 27);
+		minChunkUnit.setSelectedIndex(0);
+		uploadPage.add(minChunkUnit);
+		
+		averageChunkUnit = new JComboBox(size);
+		averageChunkUnit.setBounds(271, 170, 84, 27);
+		averageChunkUnit.setSelectedIndex(0);
+		uploadPage.add(averageChunkUnit);
+		
+		maxChunkUnit = new JComboBox(size);
+		maxChunkUnit.setSelectedIndex(0);
+		maxChunkUnit.setBounds(271, 200, 84, 27);
+		uploadPage.add(maxChunkUnit);;
 
-		JButton btnBack_1 = new JButton("Back");
-		btnBack_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					/*if (uploadThread.isAlive()){
-						System.out.println("UploadThread end.");
-						uploadThread.interrupt();
-					}*/
-					System.out.println("GUI - Client start reconnect.");
-					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
-					
-					Container cards = frame.getContentPane();
-					CardLayout cl = (CardLayout) cards.getLayout();
-					cl.show(cards, "Upload");
-					System.out.println("GUI - [Page] Upload");
-				} catch (IOException e1) {
-					System.out.println("GUI - Reconnection Failed.");
-					e1.printStackTrace();
-					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
-					
-					Container cards = frame.getContentPane();
-					CardLayout cl = (CardLayout) cards.getLayout();
-					cl.show(cards, "IP Address");
-					System.out.println("GUI - [Page] IP Address");
-				}
-			}
-		});
-		btnBack_1.setBounds(327, 243, 117, 29);
-		uploadProgress.add(btnBack_1);
+	}
 
-		JLabel lblUploading = new JLabel("Uploading...");
-		lblUploading.setBounds(184, 6, 84, 16);
-		uploadProgress.add(lblUploading);
-
-		JLabel lblEstimateTime = new JLabel("Estimate Time :");
-		lblEstimateTime.setBounds(6, 113, 108, 16);
-		uploadProgress.add(lblEstimateTime);
-
+	private void initDownloadProgress() {
 		JPanel downloadProgress = new JPanel();
 		frame.getContentPane().add(downloadProgress, "Download Progress");
 		downloadProgress.setLayout(null);
-
+		
 		JLabel lblDownloading = new JLabel("Downloading...");
 		lblDownloading.setBounds(166, 6, 117, 16);
 		downloadProgress.add(lblDownloading);
@@ -537,17 +1051,25 @@ public class GUI {
 		JButton btnBack_2 = new JButton("Back");
 		btnBack_2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Back Button Pressed");
 				try {
-					System.out.println("GUI - Client start reconnect.");
+					client.connect();
+					int result = client.heartbeat();
 					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
-					
+						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
-					cl.show(cards, "Home");
-					System.out.println("GUI - [Page] Home");
-				} catch (IOException e1) {
+					
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "Home");
+						System.out.println("GUI - [Page] Home <- Download Progress");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+				} catch (Exception e1) {
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
@@ -556,10 +1078,10 @@ public class GUI {
 				}
 			}
 		});
-		btnBack_2.setBounds(327, 243, 117, 29);
+		btnBack_2.setBounds(6, 243, 117, 29);
 		downloadProgress.add(btnBack_2);
 		
-		JProgressBar downloadProgressBar = new JProgressBar();
+	    downloadProgressBar = new JProgressBar();
 		downloadProgressBar.setBounds(6, 96, 438, 20);
 		downloadProgress.add(downloadProgressBar);
 		
@@ -571,7 +1093,7 @@ public class GUI {
 		lblChunkDownloaded.setBounds(6, 120, 133, 16);
 		downloadProgress.add(lblChunkDownloaded);
 		
-		JLabel currentChunk = new JLabel("???");
+		currentChunk = new JLabel("???");
 		currentChunk.setHorizontalAlignment(SwingConstants.RIGHT);
 		currentChunk.setBounds(148, 120, 61, 16);
 		downloadProgress.add(currentChunk);
@@ -580,14 +1102,16 @@ public class GUI {
 		label_1.setBounds(221, 120, 14, 16);
 		downloadProgress.add(label_1);
 		
-		JLabel totalChunk = new JLabel("Total");
+		totalChunk = new JLabel("Total");
 		totalChunk.setBounds(238, 120, 61, 16);
 		downloadProgress.add(totalChunk);
 		
-		JLabel downloadTime = new JLabel("Estimating...");
+		downloadTime = new JLabel("Estimating...");
 		downloadTime.setBounds(114, 148, 133, 16);
 		downloadProgress.add(downloadTime);
-
+	}
+	
+	private void initListPage() {
 		JPanel listPage = new JPanel();
 		frame.getContentPane().add(listPage, "List");
 		listPage.setLayout(null);
@@ -596,34 +1120,37 @@ public class GUI {
 		lblFileInThe.setBounds(162, 6, 131, 16);
 		listPage.add(lblFileInThe);
 
-		String[] columns = { "Filename", "Size" };
-		@SuppressWarnings("serial")
-		DefaultTableModel model = new DefaultTableModel(columns, 0) {
-			@Override
-			public boolean isCellEditable(int row, int column) {
-				return false;
-			}
-		};
+		
 
 		JButton btnBack_4 = new JButton("Back");
 		btnBack_4.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				System.out.println("GUI - Back Button Pressed");
 				try {
-					System.out.println("GUI - Client start reconnect.");
-					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
-					
 					model.setRowCount(0);
 					
+					client.connect();
+					int result = client.heartbeat();
+					client.close();
+						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
-					cl.show(cards, "Home");
-					System.out.println("GUI - [Page] Home");
-				} catch (IOException e1) {
+					
+					if (result == Client.HEARTBEAT) {
+						cl.show(cards, "Home");
+						System.out.println("GUI - [Page] Home <- List");
+					} else {
+						JOptionPane.showMessageDialog(null, "Connection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+						cl.show(cards, "IP Address");
+						System.out.println("GUI - [Page] IP Address <- Login");
+					}
+					
+				} catch (Exception e1) {
 					System.out.println("GUI - Reconnection Failed.");
 					e1.printStackTrace();
 					JOptionPane.showMessageDialog(null, "Reconnection Failed", "ERROR", JOptionPane.ERROR_MESSAGE);
+					
+					model.setRowCount(0);
 					
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
@@ -633,7 +1160,7 @@ public class GUI {
 				}
 			}
 		});
-		btnBack_4.setBounds(327, 243, 117, 29);
+		btnBack_4.setBounds(6, 243, 117, 29);
 		listPage.add(btnBack_4);
 
 		JScrollPane scrollPane = new JScrollPane();
@@ -648,10 +1175,10 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 
 				try {
-					System.out.println("GUI - Client start reconnect.");
+					System.out.println("GUI - Client start connection.");
 					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
+					//client.reconnect(address, 59090);
+					//System.out.println("GUI - Client finish reconnect.");
 
 					int selectedRow = table.getSelectedRow();
 					String filename = (String) table.getValueAt(selectedRow, 0);
@@ -665,8 +1192,26 @@ public class GUI {
 						public void run() {
 							System.out.println("GUI - Start Thread (download)... ");
 							try {
-								client.download(filename, filename, 
+								
+								client.connect(address, 59090);
+								int download_protocol = client.download(filename, filename, 
 										currentChunk, totalChunk, downloadTime, downloadProgressBar);
+								client.close();
+								
+								
+								if (download_protocol == Client.NOT_AUTHORIZED) {
+									JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+									
+									Container cards = frame.getContentPane();
+									CardLayout cl = (CardLayout) cards.getLayout();
+									cl.show(cards, "Login");
+									System.out.println("GUI - [Page] Login");
+									
+									System.out.println("GUI - Client stop connection.");
+									client.close();
+									//client.reconnect(address, 59090);
+									//System.out.println("GUI - Client finish reconnect.");
+								}
 
 							} catch (IOException e) {
 								System.out.println("GUI - ERROR - Connection Failed.");
@@ -703,10 +1248,10 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 
 				try {
-					System.out.println("GUI - Client start reconnect.");
+					System.out.println("GUI - Client stop connection.");
 					client.close();
-					client.reconnect(address, 59090);
-					System.out.println("GUI - Client finish reconnect.");
+					//client.reconnect(address, 59090);
+					//System.out.println("GUI - Client finish reconnect.");
 
 					int selectedRow = table.getSelectedRow();
 					String filename = (String) table.getValueAt(selectedRow, 0);
@@ -716,8 +1261,33 @@ public class GUI {
 						public void run() {
 							System.out.println("GUI - Start Thread (Delete)...");
 							try {
-								client.delete(filename);
-								model.removeRow(selectedRow);
+								
+								client.connect(address, 59090);
+								int delete_protocol = client.delete(filename);
+								client.close();
+								
+								if (delete_protocol == Client.DELETE_SUCCESS) {
+									model.removeRow(selectedRow);
+								} else if (delete_protocol == Client.NOT_AUTHORIZED) {
+									JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+									
+									Container cards = frame.getContentPane();
+									CardLayout cl = (CardLayout) cards.getLayout();
+									cl.show(cards, "Login");
+									System.out.println("GUI - [Page] Login");
+									
+								}
+								else {
+									System.out.println("GUI - Unknown ERROR in delete file.");
+									JOptionPane.showMessageDialog(null, "Unknown ERROR", "ERROR",
+											JOptionPane.ERROR_MESSAGE);
+									
+									Container cards = frame.getContentPane();
+									CardLayout cl = (CardLayout) cards.getLayout();
+									cl.show(cards, "IP Address");
+									System.out.println("GUI - [Page] IP Address <- List");
+								}
+								
 							} catch (IOException e) {
 								System.out.println("GUI - ERROR - Connection Failed.");
 								e.printStackTrace();
@@ -751,107 +1321,40 @@ public class GUI {
 		table.setComponentPopupMenu(popupMenu);
 		table.addMouseListener(new TableMouseListener(table));
 		scrollPane.setViewportView(table);
+	}
+	
+	
+	/**
+	 * Initialize the contents of the frame.
+	 */
+	@SuppressWarnings("serial")
+	private void initialize() {
+		frame = new JFrame();
+		frame.setResizable(false);
+		frame.setBounds(100, 100, 450, 300);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		JLabel lblClientProgramFor = new JLabel("Client Program for Deduplication Cloud");
-		lblClientProgramFor.setBounds(100, 6, 248, 16);
-		home.add(lblClientProgramFor);
-
-		JButton btnUpload = new JButton("Upload");
-		btnUpload.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("GUI - Upload Button Pressed");
-				
-				Container cards = frame.getContentPane();
-				CardLayout cl = (CardLayout) cards.getLayout();
-				cl.show(cards, "Upload");
-				System.out.println("GUI - [Page] Upload");
+		frame.getContentPane().setLayout(new CardLayout(0, 0));
+		
+		String[] columns = { "Filename", "Size" };
+		model = new DefaultTableModel(columns, 0) {
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				return false;
 			}
-		});
-		btnUpload.setBounds(166, 98, 117, 29);
-		home.add(btnUpload);
+		};
 
-		JButton btnListFile = new JButton("List File");
-		btnListFile.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		// Setting JPanel : Main Page, Upload Page, Upload Progress Page,
+		// Download Progress Page, List Page
 
-				System.out.println("GUI - List File Button Pressed");
-				Container cards = frame.getContentPane();
-				CardLayout cl = (CardLayout) cards.getLayout();
-				cl.show(cards, "List");
-				System.out.println("GUI - [Page] List");
-
-				(new Thread() {
-					public void run() {
-						try {
-							int list_protocol = client.list();
-							if (list_protocol == Client.LIST_RETREIVED){
-								ArrayList<String[]> data = client.fileList;
-								for (int i = 0; i < data.size(); i++) {
-									System.err.print(data.get(i)[1]);
-									
-									if (data.get(i)[1] == "/" && data.get(i)[0] == "Error Occur.") {
-										JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
-												JOptionPane.ERROR_MESSAGE);
-										cl.show(cards, "Home");
-										Thread.currentThread().interrupt();
-										break;
-									} else if (data.get(i)[1] == "/" && data.get(i)[0] == "No file in the server.") {
-										JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
-												JOptionPane.ERROR_MESSAGE);
-										cl.show(cards, "Home");
-										Thread.currentThread().interrupt();
-										break;
-									}
-
-									model.addRow(data.get(i));
-								}
-							} else if (list_protocol == Client.LIST_NO_FILE) {
-								JOptionPane.showMessageDialog(null, "No file in the server.", "ERROR",
-										JOptionPane.ERROR_MESSAGE);
-								cl.show(cards, "Home");
-								System.out.println("GUI - [Page] Home");
-								
-								System.out.println("GUI - Client start reconnect.");
-								client.close();
-								client.reconnect(address, 59090);
-								System.out.println("GUI - Client finish reconnect.");
-								
-								Thread.currentThread().interrupt();
-								
-							} else if (list_protocol == Client.LIST_RETREIVE_FAILED) {
-								JOptionPane.showMessageDialog(null, "Unknown Error Occur", "ERROR",
-										JOptionPane.ERROR_MESSAGE);
-								cl.show(cards, "Home");
-								System.out.println("GUI - [Page] Home");
-								
-								System.out.println("GUI - Client start reconnect.");
-								client.close();
-								client.reconnect(address, 59090);
-								System.out.println("GUI - Client finish reconnect.");
-								
-								Thread.currentThread().interrupt();
-							}
-							
-						} catch (IOException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}
-					}
-				}).start();
-
-			}
-		});
-		btnListFile.setBounds(166, 139, 117, 29);
-		home.add(btnListFile);
-
-		JButton btnExit = new JButton("Exit");
-		btnExit.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("GUI - Exit");
-				System.exit(0);
-			}
-		});
-		btnExit.setBounds(324, 242, 117, 29);
-		home.add(btnExit);
+		initIpAddressPage();
+		initLoginPage();
+		initCreateUserPage();
+		initHomePage();
+		initUploadProgress();
+		initUploadPage();
+		initDownloadProgress();
+		initListPage();
+			
 	}
 }

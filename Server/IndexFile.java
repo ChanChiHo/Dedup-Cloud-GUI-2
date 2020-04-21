@@ -1,10 +1,15 @@
 import java.io.*;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.ArrayList;
 
 @SuppressWarnings("serial")
 class IndexFile implements java.io.Serializable {
+	
+	//TODO Change the timeout
+	public static final int TIMEOUT_IN_MIN = 1;
 
 	public int logicalChunk;
 	public int physicalChunk;
@@ -15,12 +20,23 @@ class IndexFile implements java.io.Serializable {
 	public HashMap<String, Long> chunkSizeList;
 	public HashMap<String, ArrayList<String>> fileReceipt;
 	public HashMap<String, Long> filesizeList;
+	
+	public HashMap<String, String> userPassList;
+	public HashMap<String, ArrayList<String>> userFileList;
+	
+	public HashMap<String, String> sessionUserList;
+	public HashMap<String, LocalDateTime> sessionTimeoutList;
 
 	public IndexFile(){
 		referenceList = new HashMap<>();
 		fileReceipt = new HashMap<>();
 		chunkSizeList = new HashMap<>();
 		filesizeList = new HashMap<>();
+		userFileList = new HashMap<>();
+		userPassList = new HashMap<>();
+		sessionUserList = new HashMap<>();
+		sessionTimeoutList = new HashMap<>();
+		
 		logicalChunk = 0;
 		physicalChunk = 0;
 		storageAfter = 0;
@@ -71,6 +87,11 @@ class IndexFile implements java.io.Serializable {
 		this.filesizeList.put(filename, filesize);
 	}
 
+	public void recordNewFile(String filename, long filesize, String owner) {
+		this.filesizeList.put(filename, filesize);
+		this.userFileList.get(owner).add(filename);
+	}
+	
 	public void recordDupChunk(String chunkChecksum){
 		this.referenceList.put(chunkChecksum,this.getChunkReference(chunkChecksum)+1);
 		this.logicalChunk++;
@@ -98,6 +119,13 @@ class IndexFile implements java.io.Serializable {
 		this.filesizeList.remove(filename);
 	}
 
+	public void deleteFile(String filename, String owner) {
+		this.fileReceipt.remove(filename);
+		this.filesizeList.remove(filename);
+		
+		this.userFileList.get(owner).remove(filename);
+	}
+	
 	public long getPhysicalTotalStorage(){
 		long total = (long) 0.0;
 		for (Map.Entry<String, Long> entry : this.chunkSizeList.entrySet()){
@@ -131,4 +159,75 @@ class IndexFile implements java.io.Serializable {
 		}
 		System.out.println("Total Memory = "+totalMemory+" bytes.");
 	}
+	
+	public long getFilesize(String filename) {
+		return this.filesizeList.get(filename);
+	}
+	
+	// User Management Function:
+	
+	public void createUser(String username, String passwordHash) {
+		this.userPassList.put(username, passwordHash);
+		this.userFileList.put(username, new ArrayList<String>());
+	}
+	
+	public void deleteUser(String username) {
+		this.userPassList.remove(username);
+		this.userFileList.remove(username);
+	}
+	
+	public boolean hasUser(String username) {
+		return this.userPassList.containsKey(username);
+	}
+	
+	public String getPasswordHash(String username) {
+		return this.userPassList.get(username);
+	}
+	
+	public boolean checkUserPass(String username, String passwordHash) {
+		if (!this.hasUser(username)) {
+			return false;
+		}
+		return this.userPassList.get(username).equals(passwordHash);
+	}
+	
+	public void recordNewSession(String username, String key) {
+		this.sessionUserList.put(key, username);
+		this.sessionTimeoutList.put(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+	}
+	
+	public String getUserFromKey(String key) {
+		return this.sessionUserList.get(key);
+	}
+	
+	public boolean hasSession(String key) {
+		return this.sessionUserList.containsKey(key);
+	}
+	
+	public void removeTimeoutSession(LocalDateTime lastTime) {
+		System.out.println("IndexFile - Remove Session.");
+		Iterator<String> it = this.sessionTimeoutList.keySet().iterator();
+		
+		while (it.hasNext()) {
+			String key = it.next();
+			System.out.println("Item : "+key+" "+this.sessionTimeoutList.get(key));
+			
+			LocalDateTime now = LocalDateTime.now();
+			System.out.println("Now  : "+now);
+			
+			System.out.println("Bool : "+now.isAfter(this.sessionTimeoutList.get(key)));
+			
+			//TODO Change the timeout to 15 mins
+			if (now.isAfter(this.sessionTimeoutList.get(key))) {
+				it.remove();
+				this.sessionUserList.remove(key);
+			}
+		}
+		
+	}
+	
+	public ArrayList<String> getFileList(String owner){
+		return this.userFileList.get(owner);
+	}
+
 }

@@ -2,6 +2,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -26,8 +27,15 @@ public class Client {
 	public ArrayList<Byte> fingerprintList = new ArrayList<>();
 	ArrayList<String[]> fileList = new ArrayList<String[]>();
 
-	// Protocol - Connection failed
+	private String sessionKey = "NULL";
+	private String host;
+	private int port;
+	
+	// Protocol - Universal
 	public static final int REQUEST_FAIL = 050;
+	public static final int AUTHORIZED = 051;
+	public static final int NOT_AUTHORIZED = 052;
+	public static final int CONTENT_START = 053;
 
 	// Protocol - Upload
 	public static final int REQUEST_UPLOAD = 101;
@@ -45,7 +53,9 @@ public class Client {
 	public static final int REQUEST_SAVE_CHUNK = 110;
 	public static final int CHUNK_SAVED = 111;
 	public static final int CHUNK_NOT_SAVED = 112;
-
+	
+	public static final int SAME_FILENAME_EXIST = 113;
+	
 	public static final int REQUEST_UPLOAD_END = 199;
 
 	// Protocol - Download
@@ -55,6 +65,9 @@ public class Client {
 
 	public static final int CHUNK_START = 204;
 	public static final int CHUNK_END = 205;
+	
+	public static final int DOWNLOAD_SUCCESS = 206;
+	public static final int DOWNLOAD_FAIL = 207;
 
 	public static final int REQUEST_DOWNLOAD_END = 299;
 
@@ -75,11 +88,33 @@ public class Client {
 
 	public static final int REQUEST_LIST_END = 499;
 	
+	// Protocol - Login
+	public static final int REQUEST_LOGIN = 501;
+	public static final int LOGIN_SUCCESS = 502;
+	public static final int NO_USERNAME = 503;
+	public static final int PASSWORD_WRONG = 504;
+	
+	// Protocol - Create User
+	public static final int REQUEST_CREATE_USER = 601;
+	public static final int USER_CREATED = 602;
+	public static final int USERNAME_EXIST = 603;
+	
+	// Protocol - Logout
+	public static final int REQUEST_LOGOUT = 701;
+	public static final int LOGOUT_SUCCESS = 702;
+	public static final int LOGOUT_FAIL = 703;
+	
 	// Protocol - Error Code
 	public static final int NO_ERROR = 900;
-	public static final int SAME_FILENAME_EXIST = 901;
+	public static final int REQUIRE_LOGIN = 901;
 	public static final int UNKNOWN_ERROR = 999;
 	
+	public static final int NEUTRAL = 000;
+	public static final int SUCCESS = 001;
+	public static final int FAIL = 002;
+
+	public static final int REQUEST_HEARTBEAT = 003;
+	public static final int HEARTBEAT = 004;
 
 	public static String translateMsgCode(int msgCode) {
 		switch (msgCode) {
@@ -146,12 +181,58 @@ public class Client {
 		}
 	}
 
+	// credit from : https://stackoverflow.com/a/11009612
+	public static String sha256(String base) {
+	    try{
+	        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+	        byte[] hash = digest.digest(base.getBytes("UTF-8"));
+	        StringBuffer hexString = new StringBuffer();
+
+	        for (int i = 0; i < hash.length; i++) {
+	            String hex = Integer.toHexString(0xff & hash[i]);
+	            if(hex.length() == 1) hexString.append('0');
+	            hexString.append(hex);
+	        }
+
+	        return hexString.toString();
+	    } catch(Exception ex){
+	       throw new RuntimeException(ex);
+	    }
+	}
+	
 	public Client(String host, int port) throws UnknownHostException, IOException {
-		System.out.println("Client - start connection..");
-		this.socket = new Socket(host, port);
-		this.dis = new DataInputStream(this.socket.getInputStream());
-		this.dos = new DataOutputStream(this.socket.getOutputStream());
-		System.out.println("Client - connection has set up.");
+		this.host = host;
+		this.port = port;
+		System.out.println("Client - Object Created. Need Connection");
+	}
+	
+	public int createUser(String username, String password) throws IOException {
+		System.out.println("Client - Action : Create User.");
+		this.dos.writeInt(Client.REQUEST_CREATE_USER);
+		this.dos.writeUTF(username);
+		this.dos.writeUTF(sha256(password));
+		
+		int result = this.dis.readInt();
+		System.out.println("Client - received result : "+result);
+		
+		return result;
+	}
+		
+	public int login(String username, String password) throws IOException, NoSuchAlgorithmException {
+				
+		System.out.println("Client - Start sending login info to server..");
+		this.dos.writeInt(Client.REQUEST_LOGIN);
+		this.dos.writeUTF(username);
+		this.dos.writeUTF(sha256(password));
+		int permission = this.dis.readInt();
+		System.out.println("Client - get login permission : ["+permission+"]");
+		
+		if (permission == Client.LOGIN_SUCCESS) {
+			this.sessionKey = this.dis.readUTF();
+			System.out.println("Client - get key = "+this.sessionKey);
+		}
+		
+		return permission;
 	}
 
 	public void sendString(String msg) throws IOException {
@@ -167,6 +248,8 @@ public class Client {
 		File file = new File(filepath);
 		this.dos.writeUTF(file.getName());
 		this.dos.writeInt((int) file.length());
+		
+		this.dos.writeUTF(this.sessionKey);
 
 		int received = this.dis.readInt();
 		// System.out.println("[FROM Server] Message Code =
@@ -181,6 +264,7 @@ public class Client {
 		// received. Content:REQUEST_DOWNLOAD
 
 		this.dos.writeUTF(filename);
+		this.dos.writeUTF(this.sessionKey);
 
 		int received = this.dis.readInt();
 		System.out.println("[FROM Server] Message Code = " + translateMsgCode(received));
@@ -273,12 +357,20 @@ public class Client {
 		System.out.println("Client - Stream and socket closed.");
 	}
 
-	public void reconnect(String host, int port) throws IOException {
-		System.out.println("Client - Start reconnecting...");
+	public void connect(String host, int port) throws IOException {
+		System.out.println("Client - Start connecting to ["+host+","+port+"]...");
 		this.socket = new Socket(host, port);
 		this.dis = new DataInputStream(this.socket.getInputStream());
 		this.dos = new DataOutputStream(this.socket.getOutputStream());
-		System.out.println("Client - Reconnect complete. Connection set up.");
+		System.out.println("Client - Connection complete. Connection set up. ["+LocalDateTime.now()+"]");
+	}
+	
+	public void connect() throws IOException {
+		System.out.println("Client - Start connecting to ["+this.host+","+this.port+"]...");
+		this.socket = new Socket(this.host, this.port);
+		this.dis = new DataInputStream(this.socket.getInputStream());
+		this.dos = new DataOutputStream(this.socket.getOutputStream());
+		System.out.println("Client - Reconnect complete. Connection set up. ["+LocalDateTime.now()+"]");
 	}
 
 	public int receiveMsgCode() throws IOException {
@@ -308,15 +400,23 @@ public class Client {
 		} else if (permission == NOT_ALLOW_UPLOAD) {
 			System.out.println("Filename exist. Not allow to upload this file.");
 			return SAME_FILENAME_EXIST;
+		} else if (permission == Client.NOT_AUTHORIZED) {
+			System.out.println("You must login to do this action.");
+			return Client.NOT_AUTHORIZED;
 		}
 		return UNKNOWN_ERROR;
 	}
 
-	public void download(String filename, String localFilePath, 
+	public int download(String filename, String localFilePath, 
 			JLabel current, JLabel total, JLabel time, JProgressBar bar) throws IOException {		
 		System.out.println("Client : Action - Download");
 		int permission = this.getDownloadPermission(filename);
 		FileOutputStream out = null;
+		
+		if (permission == Client.NOT_AUTHORIZED) {
+			System.out.println("You must login to do this action.");
+			return Client.NOT_AUTHORIZED;
+		}
 
 		if (permission == ALLOW_DOWNLOAD) {
 			int numberOfChunk = this.dis.readInt();
@@ -362,7 +462,7 @@ public class Client {
 						System.out.println("Chunk transfer broken.");
 						this.dis.close();
 						out.close();
-						return;
+						return Client.DOWNLOAD_FAIL;
 					}
 				}
 
@@ -375,10 +475,13 @@ public class Client {
 				time.setText("Success Downloaded");
 			}
 			this.socket.close();
+			return Client.DOWNLOAD_SUCCESS;
 
 		} else if (permission == NOT_ALLOW_DOWNLOAD) {
 			System.out.println("The file is not exist in server.");
+			return Client.NOT_ALLOW_DOWNLOAD;
 		}
+		return Client.UNKNOWN_ERROR;
 	}
 
 	public void sendChunks(String pathname, int min_chunk, int base, int modulus, int max_chunk, JProgressBar bar, JLabel label)
@@ -404,7 +507,7 @@ public class Client {
 		Long startTime = (long) 0;
 		label.setText("Estimating...");
 
-		System.out.println("Client[Upload] - progressMax = "+progressMax);
+		//System.out.println("Client[Upload] - progressMax = "+progressMax);
 		
 		try {
 			in = new FileInputStream(file);
@@ -427,7 +530,7 @@ public class Client {
 				
 				
 				if (counter % progressOnePercent == 0 && counter != 0 && counter >= min_chunk){
-					bar.setValue(counter);
+					bar.setValue(counter-min_chunk);
 					
 					Long passedTime = System.nanoTime() - startTime;
 					Long remainingTime = passedTime * progressMax / counter - passedTime;
@@ -489,9 +592,17 @@ public class Client {
 					if ((result == 0 && content.size() >= min_chunk) || (content.size() == max_chunk)) {
 						
 						System.out.println("Client[Upload] - Packing chunk..");
+						Timer packingTimer = new Timer("Packing Total");
 						
+						Timer updatemdTimer = new Timer("Update md");
 						md.update(content.toString().getBytes());
+						updatemdTimer.stop();
+						
+						Timer digestTimer = new Timer("md digest");
 						byte[] checksumByte = md.digest();
+						digestTimer.stop();
+						
+						Timer checksumTimer = new Timer("checksum generate");
 
 						StringBuilder sb = new StringBuilder();
 						for (int i = 0;i<checksumByte.length;i++) {
@@ -499,20 +610,24 @@ public class Client {
 						}
 						checksum = sb.toString();
 
-						System.out.println("Client[Upload] - checksum generated.");
-						// TODO Remove the below line for optimization
-						//System.out.println("Checksum = " + checksum);
+						checksumTimer.stop();
 
 						int reply = getChunkStatus(checksum);
 						if (reply == CHUNK_EXIST) {
 							// System.out.println("========Chunk exist========");
 						} else if (reply == CHUNK_NOT_EXIST) {
 							// System.out.println("===========================");
+							Timer createChunkTimer = new Timer("Create chunk");
 							createSingleChunk(content, checksum);
+							createChunkTimer.stop();
 						}
+						
+						Timer clearTimer = new Timer("Clear content");
 						content.clear();
+						clearTimer.stop();
 						
 						System.out.println("Client[Upload] - chunk sent.");
+						packingTimer.stop();
 					}
 				}
 
@@ -561,7 +676,7 @@ public class Client {
 
 	
 
-	public void delete(String filename) throws IOException {
+	public int delete(String filename) throws IOException {
 		System.out.println("Client : Action - Delete");
 
 		this.dos.writeInt(REQUEST_DELETE);
@@ -569,13 +684,21 @@ public class Client {
 		// received. Content:REQUEST_DELETE
 
 		this.dos.writeUTF(filename);
+		
+		this.dos.writeUTF(this.sessionKey);
 		int received = receiveMsgCode();
 		if (received == DELETE_FILE_NOT_EXIST) {
 			System.out.println("The File is not exist in server");
+			return Client.DELETE_FILE_NOT_EXIST;
 		} else if (received == DELETE_SUCCESS) {
 			System.out.println("File - " + filename + " is deleted.");
+			return Client.DELETE_SUCCESS;
+		} else if (received == Client.NOT_AUTHORIZED) {
+			System.out.println("Not authorized action.");
+			return Client.NOT_AUTHORIZED;
 		} else {
 			System.out.println("Delete Not Success. Please retry");
+			return Client.DELETE_NOT_SUCCESS;
 		}
 
 	}
@@ -583,10 +706,16 @@ public class Client {
 	public int list() throws IOException {
 		System.out.println("Client : Action - List file");
 		sendPureRequest(REQUEST_LIST);
+		sendString(this.sessionKey);
+		System.out.println("Client - Request Sent.");
 		
 		fileList.clear();
-
 		int received = receiveMsgCode();
+		if (received == Client.NOT_AUTHORIZED) {
+			System.out.println("Client - Require Login");
+			return Client.NOT_AUTHORIZED;
+		}
+		
 		if (received == LIST_NO_FILE) {
 			System.out.println("Client - No file in the server");
 			return LIST_NO_FILE;
@@ -614,7 +743,11 @@ public class Client {
 			System.out.println("Client - List file - Unknown Error Occur.");
 			return LIST_RETREIVE_FAILED;
 		}
-		
-
+	}
+	
+	public int heartbeat() throws IOException {
+		System.out.println("Client - Request Heartbeat.");
+		this.dos.writeInt(Client.REQUEST_HEARTBEAT);
+		return this.dis.readInt();
 	}
 }

@@ -14,11 +14,15 @@ public class Timer {
 	
 	public Timer(String processName) {
 		this.name = processName;
+		
+		this.start();
 	}
 	
 	public Timer(String processName, int unit) {
 		this.name = processName;
 		this.unit = unit;
+		
+		this.start();
 	}
 	
 	public void start() {
