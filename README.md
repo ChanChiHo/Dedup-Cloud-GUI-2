@@ -13,24 +13,31 @@ The textfile folder would store the test file for the testing purpose.
 
 ## Prerequisites
 
-- The computer must support java Swing and also SHA-256.
+- The computer must support java Swing, SSL, abd SHA-256.
 - The port 59090 should be open for both Client and Server side computer.
 - The two computer client and server is better at the same network.
 
-## Server Program
+## Init: Key Generation
 
-Start compile the program by
+The project will need to first generate the private key and public key for both client and server program. The makefile will also finish the key generation and also java .class file creation.
+
+Start by this command:
 ```sh
 $ make
 ```
-Run the program by 
+
+## Server Program
+
+After the init process, run the program by: 
 ```sh
 $ java Server
 ```
 Then you will see the following message in command line:
 ```sh
-The data server is still running...
-Running at : 192.168.0.155
+Server running..
+Running at :
+192.168.0.152		OR
+192.168.0.152
 ```
 The Ip address may be different, but please mark it down for the use of Client side.
 
@@ -40,21 +47,46 @@ $ make clear
 ```
 It will delete all the file store in folder data.
 
+### Timeout for client
+
+The server has a timeout setting in class Server.IndexFile, which you will see this in the class
+```
+public static final int TIMEOUT_IN_MIN = 1;
+```
+You can change the timeout though this line.
+
+### Client Program Duplication
+
+You can make another client program, which must create in the root folder though makefile.
+```sh
+$ make duplicate
+```
+
+There are serveral things that need to know after duplicate the client program:
+- Another key will generate for duplicated client program, this will also import the certificate to the server's truststore, therefore, the duplicated client program, can be only use to connect to that server program in the root folder.  
+
+This will create a folder, which will include ssl key, the client class, client gui, which can be use directly.
+
+==============================================================
 ## Client Program
  
-Start compile the program by
-```sh
-$ make
-```
-then run the program by 
+Run the program by 
 ```sh
 $ java GUI
 ```
 You have to enter the IP Address to connect the server, any connection fault will require you to reconnect to the server by enter the IP Address.
 
+Before you access the server, you must first have a accoount. Though the "create account" button, you can make a account to upload or download the file.
+
+
+
+
 ## Problem
 
-This program is not very stable, if you find any thing wrong during the make process, use following command
+This program is not very stable, if you find any thing wrong during the make process, Please follow these step.
+
+1. Go to the client/server prorgam
+2. use following command
 ```sh
 $ make detail
 ```
@@ -62,7 +94,6 @@ It will show the warning and error during make process.
 
 Known Bugs
 - There would be crash when enter an unused IP Address
-- There would be delay when the connection of server broken
 - The upload page would not be able to upload if you are doing second upload
 
 Possible situation that would appear bug
@@ -76,3 +107,8 @@ Possible situation that would appear bug
 - Adding 'Connecting' Label when connecting to server.
 - You can now see the filename of selected file and reset your selection in uploading page.
 - Remove the BigInteger from code to enhance performance.
+- Introducing of account system. The file that the user upload will not be viewed by other users.
+- Muti Threading of server.
+- Introduce timeout, client will not be able operate after certain time of doing nothing.
+- SSL Connection is used. With the script to import the truststore and generate public/private key.
+- Duplication of Client program and can be used together with origin one at the same time.
