@@ -213,7 +213,7 @@ public class Client {
 		this.host = host;
 		this.port = port;
 		
-		Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+		//Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
 		
 		this.factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
 		System.out.println("Client - Object Created. Need Connection");
