@@ -67,7 +67,37 @@ There are serveral things that need to know after duplicate the client program:
 
 This will create a folder, which will include ssl key, the client class, client gui, which can be use directly.
 
-==============================================================
+## Server User management tools
+
+The purpose of this tool is to read the information of server indexFile, while the server is still running.
+
+There are serveral function:
+
+### User List
+
+```sh
+$ java UserManager
+```
+This will generate a list, that include username, and the hash value(sha-256) of their password.
+
+### Delete User
+```sh
+$ java UserManager delete <Username>
+```
+This will delete the user data from the server. However, their file data will not be deleted.
+
+### Session List
+```sh
+$ java UserManager session
+```
+This will list the session id, the username that the id point with, and the expire time in LocalDateTime.
+
+### Delete Session
+```sh
+$ java UserManager session clear
+```
+This will manually remove all session that store in the server.
+
 ## Client Program
  
 Run the program by 
