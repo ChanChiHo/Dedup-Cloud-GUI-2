@@ -2,10 +2,13 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 
@@ -20,7 +23,7 @@ import java.io.FileOutputStream;
 
 public class Client {
 
-	private Socket socket;
+	private SSLSocket socket;
 	private DataInputStream dis;
 	private DataOutputStream dos;
 
@@ -30,6 +33,7 @@ public class Client {
 	private String sessionKey = "NULL";
 	private String host;
 	private int port;
+	private SSLSocketFactory factory;
 	
 	// Protocol - Universal
 	public static final int REQUEST_FAIL = 050;
@@ -201,8 +205,17 @@ public class Client {
 	}
 	
 	public Client(String host, int port) throws UnknownHostException, IOException {
+		System.setProperty("javax.net.ssl.keyStore", "sslclientkeys");
+		System.setProperty("javax.net.ssl.keyStorePassword", "password");
+		System.setProperty("javax.net.ssl.trustStore", "sslclienttrust");
+		System.setProperty("javax.net.ssl.trustStorePassword", "password");
+	
 		this.host = host;
 		this.port = port;
+		
+		Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
+		
+		this.factory = (SSLSocketFactory)SSLSocketFactory.getDefault();
 		System.out.println("Client - Object Created. Need Connection");
 	}
 	
@@ -359,7 +372,7 @@ public class Client {
 
 	public void connect(String host, int port) throws IOException {
 		System.out.println("Client - Start connecting to ["+host+","+port+"]...");
-		this.socket = new Socket(host, port);
+		this.socket = (SSLSocket) factory.createSocket(host,port);
 		this.dis = new DataInputStream(this.socket.getInputStream());
 		this.dos = new DataOutputStream(this.socket.getOutputStream());
 		System.out.println("Client - Connection complete. Connection set up. ["+LocalDateTime.now()+"]");
@@ -367,7 +380,7 @@ public class Client {
 	
 	public void connect() throws IOException {
 		System.out.println("Client - Start connecting to ["+this.host+","+this.port+"]...");
-		this.socket = new Socket(this.host, this.port);
+		this.socket = (SSLSocket) factory.createSocket(host,port);
 		this.dis = new DataInputStream(this.socket.getInputStream());
 		this.dos = new DataOutputStream(this.socket.getOutputStream());
 		System.out.println("Client - Reconnect complete. Connection set up. ["+LocalDateTime.now()+"]");

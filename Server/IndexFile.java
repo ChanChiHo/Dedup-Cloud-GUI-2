@@ -204,7 +204,11 @@ class IndexFile implements java.io.Serializable {
 		return this.sessionUserList.containsKey(key);
 	}
 	
-	public void removeTimeoutSession(LocalDateTime lastTime) {
+	public void updateSession(String key) {
+		this.sessionTimeoutList.replace(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+	}
+	
+	public void removeTimeoutSession() {
 		System.out.println("IndexFile - Remove Session.");
 		Iterator<String> it = this.sessionTimeoutList.keySet().iterator();
 		
@@ -220,7 +224,8 @@ class IndexFile implements java.io.Serializable {
 			//TODO Change the timeout to 15 mins
 			if (now.isAfter(this.sessionTimeoutList.get(key))) {
 				it.remove();
-				this.sessionUserList.remove(key);
+				String user = this.sessionUserList.remove(key);
+				System.out.println("IndexFile - "+user+" session terminated.");
 			}
 		}
 		
