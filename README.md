@@ -59,7 +59,7 @@ You can change the timeout though this line.
 
 You can make another client program, which must create in the root folder though makefile.
 ```sh
-$ make duplicate
+$ make duplicate ver=<version>
 ```
 
 There are serveral things that need to know after duplicate the client program:
