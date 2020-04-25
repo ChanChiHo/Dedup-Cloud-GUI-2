@@ -135,7 +135,7 @@ It will show the warning and error during make process.
 Known Bugs
 - There would be crash when enter an unused IP Address
 - The upload page would not be able to upload if you are doing second upload
-- The back button in upload progress page will cause crash when you are still uploading file.
+- ~~The back button in upload progress page will cause crash when you are still uploading file.~~
 
 Possible situation that would appear bug
 - Uploading huge file to the server
