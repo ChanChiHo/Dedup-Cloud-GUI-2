@@ -149,7 +149,7 @@ Possible situation that would appear bug
 - You can now see the filename of selected file and reset your selection in uploading page.
 - Remove the BigInteger from code to enhance performance.
 - Introducing of account system. The file that the user upload will not be viewed by other users.
-~~- Muti Threading of server.~~
+- ~~Muti Threading of server.~~
 - Introduce timeout, client will not be able operate after certain time of doing nothing.
 - SSL Connection is used. With the script to import the truststore and generate public/private key.
 - Duplication of Client program and can be used together with origin one at the same time.
