@@ -25,7 +25,7 @@ class IndexFile implements java.io.Serializable {
 	public HashMap<String, ArrayList<String>> userFileList;
 	
 	public HashMap<String, String> sessionUserList;
-	public HashMap<String, LocalDateTime> sessionTimeoutList;
+	public HashMap<String, LocalDateTime> sessionExpireTimeList;
 
 	public IndexFile(){
 		referenceList = new HashMap<>();
@@ -35,7 +35,7 @@ class IndexFile implements java.io.Serializable {
 		userFileList = new HashMap<>();
 		userPassList = new HashMap<>();
 		sessionUserList = new HashMap<>();
-		sessionTimeoutList = new HashMap<>();
+		sessionExpireTimeList = new HashMap<>();
 		
 		logicalChunk = 0;
 		physicalChunk = 0;
@@ -193,7 +193,7 @@ class IndexFile implements java.io.Serializable {
 	
 	public void recordNewSession(String username, String key) {
 		this.sessionUserList.put(key, username);
-		this.sessionTimeoutList.put(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+		this.sessionExpireTimeList.put(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
 	}
 	
 	public String getUserFromKey(String key) {
@@ -205,24 +205,24 @@ class IndexFile implements java.io.Serializable {
 	}
 	
 	public void updateSession(String key) {
-		this.sessionTimeoutList.replace(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+		this.sessionExpireTimeList.replace(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
 	}
 	
 	public void removeTimeoutSession() {
 		System.out.println("IndexFile - Remove Session.");
-		Iterator<String> it = this.sessionTimeoutList.keySet().iterator();
+		Iterator<String> it = this.sessionExpireTimeList.keySet().iterator();
 		
 		while (it.hasNext()) {
 			String key = it.next();
-			System.out.println("Item : "+key+" "+this.sessionTimeoutList.get(key));
+			System.out.println("Item : "+key+" "+this.sessionExpireTimeList.get(key));
 			
 			LocalDateTime now = LocalDateTime.now();
 			System.out.println("Now  : "+now);
 			
-			System.out.println("Bool : "+now.isAfter(this.sessionTimeoutList.get(key)));
+			System.out.println("Bool : "+now.isAfter(this.sessionExpireTimeList.get(key)));
 			
 			//TODO Change the timeout to 15 mins
-			if (now.isAfter(this.sessionTimeoutList.get(key))) {
+			if (now.isAfter(this.sessionExpireTimeList.get(key))) {
 				it.remove();
 				String user = this.sessionUserList.remove(key);
 				System.out.println("IndexFile - "+user+" session terminated.");
