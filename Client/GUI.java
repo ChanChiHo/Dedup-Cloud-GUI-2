@@ -664,6 +664,10 @@ public class GUI {
 						uploadThread.interrupt();
 					}*/
 					
+					if (client.isAlive()){
+						client.close();
+					}
+					
 					client.connect();
 					int result = client.isConnected();
 					client.close();

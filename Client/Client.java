@@ -402,8 +402,6 @@ public class Client {
 
 	public int upload(String path, int min_chunk, int d, int average_chunk, int max_chunk, JProgressBar bar, JLabel label)
 			throws IOException, NoSuchAlgorithmException {
-		Timer timer = new Timer("upload");
-		timer.start();
 		System.out.println("Client : Action - Upload");
 		int permission = this.getUploadPermission(path);
 		if (permission == ALLOW_UPLOAD) {
@@ -498,10 +496,7 @@ public class Client {
 	}
 
 	public void sendChunks(String pathname, int min_chunk, int base, int modulus, int max_chunk, JProgressBar bar, JLabel label)
-			throws IOException, NoSuchAlgorithmException {
-		Timer chunksTimer = new Timer("sendChunks");
-		chunksTimer.start();
-		
+			throws IOException, NoSuchAlgorithmException {		
 		File file = new File(pathname);
 		FileInputStream in = null;
 		ArrayList<Byte> content = new ArrayList<>();
@@ -605,17 +600,11 @@ public class Client {
 					if ((result == 0 && content.size() >= min_chunk) || (content.size() == max_chunk)) {
 						
 						System.out.println("Client[Upload] - Packing chunk..");
-						Timer packingTimer = new Timer("Packing Total");
-						
-						Timer updatemdTimer = new Timer("Update md");
+
 						md.update(content.toString().getBytes());
-						updatemdTimer.stop();
-						
-						Timer digestTimer = new Timer("md digest");
+
 						byte[] checksumByte = md.digest();
-						digestTimer.stop();
-						
-						Timer checksumTimer = new Timer("checksum generate");
+
 
 						StringBuilder sb = new StringBuilder();
 						for (int i = 0;i<checksumByte.length;i++) {
@@ -623,24 +612,17 @@ public class Client {
 						}
 						checksum = sb.toString();
 
-						checksumTimer.stop();
-
 						int reply = getChunkStatus(checksum);
 						if (reply == CHUNK_EXIST) {
 							// System.out.println("========Chunk exist========");
 						} else if (reply == CHUNK_NOT_EXIST) {
 							// System.out.println("===========================");
-							Timer createChunkTimer = new Timer("Create chunk");
 							createSingleChunk(content, checksum);
-							createChunkTimer.stop();
 						}
-						
-						Timer clearTimer = new Timer("Clear content");
 						content.clear();
-						clearTimer.stop();
+
 						
 						System.out.println("Client[Upload] - chunk sent.");
-						packingTimer.stop();
 					}
 				}
 
@@ -762,5 +744,12 @@ public class Client {
 		System.out.println("Client - Request signal.");
 		this.dos.writeInt(Client.REQUEST_CONNECT);
 		return this.dis.readInt();
+	}
+	
+	public boolean isAlive() {
+		if (this.socket.isConnected()) {
+			return true;
+		}
+		else return false;
 	}
 }
