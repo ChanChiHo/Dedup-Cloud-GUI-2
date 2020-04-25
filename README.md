@@ -135,6 +135,7 @@ It will show the warning and error during make process.
 Known Bugs
 - There would be crash when enter an unused IP Address
 - The upload page would not be able to upload if you are doing second upload
+- The back button in upload progress page will cause crash when you are still uploading file.
 
 Possible situation that would appear bug
 - Uploading huge file to the server
@@ -148,7 +149,7 @@ Possible situation that would appear bug
 - You can now see the filename of selected file and reset your selection in uploading page.
 - Remove the BigInteger from code to enhance performance.
 - Introducing of account system. The file that the user upload will not be viewed by other users.
-- Muti Threading of server.
+- ~~Muti Threading of server.~~
 - Introduce timeout, client will not be able operate after certain time of doing nothing.
 - SSL Connection is used. With the script to import the truststore and generate public/private key.
 - Duplication of Client program and can be used together with origin one at the same time.
