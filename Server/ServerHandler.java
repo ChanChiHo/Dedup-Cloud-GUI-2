@@ -12,7 +12,7 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.io.*;
 
-public class ServerThread extends Thread {
+public class ServerHandler {
 
 	private Socket socket = null;
 	private DataInputStream dis = null;
@@ -104,8 +104,8 @@ public class ServerThread extends Thread {
 	public static final int SUCCESS = 001;
 	public static final int FAIL = 002;
 
-	public static final int REQUEST_HEARTBEAT = 003;
-	public static final int HEARTBEAT = 004;
+	public static final int REQUEST_CONNECT = 003;
+	public static final int CONNECTED = 004;
 
 	public static String translateMsgCode(int msgCode) {
 		switch (msgCode) {
@@ -269,7 +269,7 @@ public class ServerThread extends Thread {
 		return sha256(key);
 	}
 
-	public ServerThread(int port, Socket socket) {
+	public ServerHandler(int port, Socket socket) {
 		initIndex();
 		this.lastTime = LocalDateTime.now();
 		System.out.println("Start Time: " + this.lastTime);
@@ -307,10 +307,10 @@ public class ServerThread extends Thread {
 			// translateMsgCode(msgCode));
 
 			switch (msgCode) {
-			case REQUEST_HEARTBEAT:
-				System.out.println("[FROM Client] Request heartbeat.");
-				this.dos.writeInt(ServerThread.HEARTBEAT);
-				System.out.println("Server - Sent Heartbeat");
+			case REQUEST_CONNECT:
+				System.out.println("[FROM Client] Request signal.");
+				this.dos.writeInt(ServerHandler.CONNECTED);
+				System.out.println("Server - Sent connected");
 				this.socket.close();
 				break;
 
@@ -321,11 +321,11 @@ public class ServerThread extends Thread {
 
 				if (this.index.hasUser(newUsername)) {
 					System.out.println("Server - Username Exist. Return protocol.");
-					this.dos.writeInt(ServerThread.USERNAME_EXIST);
+					this.dos.writeInt(ServerHandler.USERNAME_EXIST);
 				} else {
 					this.index.createUser(newUsername, newPasswordHash);
 					System.out.println("Server - Created User:" + newUsername + ", hash=" + newPasswordHash);
-					this.dos.writeInt(ServerThread.USER_CREATED);
+					this.dos.writeInt(ServerHandler.USER_CREATED);
 
 					System.out.println("Server - Saving the index information..");
 					writeIndex();
@@ -344,7 +344,7 @@ public class ServerThread extends Thread {
 
 				if (!index.hasUser(loginUsername)) {
 					System.out.println("Server - Username not correct.");
-					this.dos.writeInt(ServerThread.NO_USERNAME);
+					this.dos.writeInt(ServerHandler.NO_USERNAME);
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
 					break;
@@ -353,7 +353,7 @@ public class ServerThread extends Thread {
 
 				if (index.checkUserPass(loginUsername, loginPasswordHash)) {
 					System.out.println("Server - Username and Password correct.");
-					this.dos.writeInt(ServerThread.LOGIN_SUCCESS);
+					this.dos.writeInt(ServerHandler.LOGIN_SUCCESS);
 
 					String key = generateSessionString(loginUsername);
 					System.out.println("Key = " + key);
@@ -363,7 +363,7 @@ public class ServerThread extends Thread {
 					this.dos.writeUTF(key);
 				} else {
 					System.out.println("Server -  Password not correct.");
-					this.dos.writeInt(ServerThread.PASSWORD_WRONG);
+					this.dos.writeInt(ServerHandler.PASSWORD_WRONG);
 				}
 
 				// this.dos.writeInt(Server.NEUTRAL);
@@ -387,7 +387,7 @@ public class ServerThread extends Thread {
 
 				if (!this.index.hasSession(sessionKey)) {
 					System.out.println("Server - No user with this session key.");
-					this.dos.writeInt(ServerThread.NOT_AUTHORIZED);
+					this.dos.writeInt(ServerHandler.NOT_AUTHORIZED);
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
 					break;
@@ -492,7 +492,7 @@ public class ServerThread extends Thread {
 
 				if (!this.index.hasSession(sessionKey)) {
 					System.out.println("Server - No user with this session key.");
-					this.dos.writeInt(ServerThread.NOT_AUTHORIZED);
+					this.dos.writeInt(ServerHandler.NOT_AUTHORIZED);
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
 					break;
@@ -506,7 +506,7 @@ public class ServerThread extends Thread {
 					// this.dos.writeInt(Server.AUTHORIZED);
 				}
 
-				msgCode = checkDownloadPermission(filenameDownload);
+				msgCode = checkDownloadPermission(username,filenameDownload);
 				if (msgCode == ALLOW_DOWNLOAD) {
 					// Write the no. of chunk to client
 					ArrayList<String> receipt = this.index.getFileReceipt(filenameDownload);
@@ -573,7 +573,7 @@ public class ServerThread extends Thread {
 
 				if (!this.index.hasSession(sessionKey)) {
 					System.out.println("Server - No user with this session key.");
-					this.dos.writeInt(ServerThread.NOT_AUTHORIZED);
+					this.dos.writeInt(ServerHandler.NOT_AUTHORIZED);
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
 					break;
@@ -588,7 +588,7 @@ public class ServerThread extends Thread {
 				}
 
 				System.out.println("Starting Delete Process..");
-				if (this.index.hasFile(filenameDelete)) {
+				if (this.index.hasFile(filenameDelete) && this.index.getFileList(username).contains(filenameDelete)) {
 					ArrayList<String> fileReceipt = (ArrayList<String>) this.index.getFileReceipt(filenameDelete);
 					for (int i = 0; i < fileReceipt.size(); i++) {
 						this.index.deleteChunk(fileReceipt.get(i));
@@ -614,7 +614,7 @@ public class ServerThread extends Thread {
 
 				if (!this.index.hasSession(sessionKey)) {
 					System.out.println("Server - No user with this session key.");
-					this.dos.writeInt(ServerThread.NOT_AUTHORIZED);
+					this.dos.writeInt(ServerHandler.NOT_AUTHORIZED);
 					this.socket.close();
 					System.out.println("[Server] End Connection.");
 					break;
@@ -626,7 +626,7 @@ public class ServerThread extends Thread {
 					
 					System.out.println("Server - Confirm Username = " + username);
 					System.out.println(
-							"Server - " + username + " Timeout : " + this.index.sessionTimeoutList.get(sessionKey));
+							"Server - " + username + " Timeout : " + this.index.sessionExpireTimeList.get(sessionKey));
 					// this.dos.writeInt(Server.AUTHORIZED);
 				}
 
@@ -678,7 +678,7 @@ public class ServerThread extends Thread {
 		}
 	}
 
-	private int checkDownloadPermission(String filename) throws IOException {
+	private int checkDownloadPermission(String username, String filename) throws IOException {
 		// TODO Auto-generated method stub
 		if (this.socket == null || this.dis == null || this.dos == null) {
 			System.out.println("[MSG] null");
@@ -687,7 +687,7 @@ public class ServerThread extends Thread {
 
 		// Checking the filename exist or not
 		// If exist -> Allow, not exist -> not allow
-		if (this.index.hasFile(filename)) {
+		if (this.index.hasFile(filename) && this.index.getFileList(username).contains(filename)) {
 			System.out.println("[Server] Allow Download from Client");
 			this.dos.writeInt(ALLOW_DOWNLOAD);
 			return ALLOW_DOWNLOAD;

@@ -38,12 +38,10 @@ public class Server {
 		Socket socket = null;
 		try {
 			socket = this.serverSocket.accept();
+			new ServerHandler(59090,socket).run();
 		} catch (IOException ie) {
 			System.out.println("Accept failed: 59090");
-		}
-		
-		new ServerThread(59090, socket).start();
-		
+		}		
 	}
 
 	public static void main(String[] args) {

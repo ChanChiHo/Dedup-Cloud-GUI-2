@@ -200,9 +200,9 @@ public class GUI {
 									client = new Client(address, 59090);
 									
 									client.connect();
-									int result = client.heartbeat();
+									int result = client.isConnected();
 									
-									if (result == Client.HEARTBEAT) {
+									if (result == Client.CONNECTED) {
 										Container cards = frame.getContentPane();
 										CardLayout cl = (CardLayout) cards.getLayout();
 										cl.show(cards, "Login");
@@ -320,13 +320,13 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "IP Address");
 						System.out.println("GUI - [Page] IP Address <- Login");
 					} else {
@@ -405,13 +405,13 @@ public class GUI {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "Login");
 						System.out.println("GUI - [Page] Login <- Create User");
 					} else {
@@ -665,13 +665,13 @@ public class GUI {
 					}*/
 					
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "Upload");
 						System.out.println("GUI - [Page] Upload <- Upload Progress");
 					} else {
@@ -721,13 +721,13 @@ public class GUI {
 				System.out.println("GUI - Back Button Pressed.");
 				try {
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "Home");
 						System.out.println("GUI - [Page] Home <- Upload");
 					} else {
@@ -1054,13 +1054,13 @@ public class GUI {
 				System.out.println("GUI - Back Button Pressed");
 				try {
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "Home");
 						System.out.println("GUI - [Page] Home <- Download Progress");
 					} else {
@@ -1130,13 +1130,13 @@ public class GUI {
 					model.setRowCount(0);
 					
 					client.connect();
-					int result = client.heartbeat();
+					int result = client.isConnected();
 					client.close();
 						
 					Container cards = frame.getContentPane();
 					CardLayout cl = (CardLayout) cards.getLayout();
 					
-					if (result == Client.HEARTBEAT) {
+					if (result == Client.CONNECTED) {
 						cl.show(cards, "Home");
 						System.out.println("GUI - [Page] Home <- List");
 					} else {

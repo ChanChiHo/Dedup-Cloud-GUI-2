@@ -117,8 +117,8 @@ public class Client {
 	public static final int SUCCESS = 001;
 	public static final int FAIL = 002;
 
-	public static final int REQUEST_HEARTBEAT = 003;
-	public static final int HEARTBEAT = 004;
+	public static final int REQUEST_CONNECT = 003;
+	public static final int CONNECTED = 004;
 
 	public static String translateMsgCode(int msgCode) {
 		switch (msgCode) {
@@ -758,9 +758,9 @@ public class Client {
 		}
 	}
 	
-	public int heartbeat() throws IOException {
-		System.out.println("Client - Request Heartbeat.");
-		this.dos.writeInt(Client.REQUEST_HEARTBEAT);
+	public int isConnected() throws IOException {
+		System.out.println("Client - Request signal.");
+		this.dos.writeInt(Client.REQUEST_CONNECT);
 		return this.dis.readInt();
 	}
 }
