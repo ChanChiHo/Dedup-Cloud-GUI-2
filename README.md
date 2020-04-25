@@ -26,6 +26,11 @@ Start by this command:
 $ make
 ```
 
+In Window (that have JDE):
+```bash
+make
+```
+
 ## Server Program
 
 After the init process, run the program by: 
@@ -60,6 +65,11 @@ You can change the timeout though this line.
 You can make another client program, which must create in the root folder though makefile.
 ```sh
 $ make duplicate ver=<version>
+```
+
+In Window (that have JDE):
+```bash
+duplicate <version>
 ```
 
 There are serveral things that need to know after duplicate the client program:
