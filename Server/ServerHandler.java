@@ -288,7 +288,7 @@ public class ServerHandler {
 
 			LocalDateTime nowTime = LocalDateTime.now();
 			System.out.println("Maintance : " + nowTime + " - Clearing unused session");
-			this.index.removeTimeoutSession();
+			this.index.removeExpiredSession();
 			try {
 				writeIndex();
 			} catch (IOException e) {
@@ -393,7 +393,7 @@ public class ServerHandler {
 					break;
 
 				} else {
-					username = this.index.getUserFromKey(sessionKey);
+					username = this.index.getUserFromSessionId(sessionKey);
 					this.index.updateSession(sessionKey);
 					writeIndex();
 					
@@ -498,7 +498,7 @@ public class ServerHandler {
 					break;
 
 				} else {
-					username = this.index.getUserFromKey(sessionKey);
+					username = this.index.getUserFromSessionId(sessionKey);
 					this.index.updateSession(sessionKey);
 					writeIndex();
 					
@@ -579,7 +579,7 @@ public class ServerHandler {
 					break;
 
 				} else {
-					username = this.index.getUserFromKey(sessionKey);
+					username = this.index.getUserFromSessionId(sessionKey);
 					this.index.updateSession(sessionKey);
 					writeIndex();
 					
@@ -620,13 +620,13 @@ public class ServerHandler {
 					break;
 
 				} else {
-					username = this.index.getUserFromKey(sessionKey);
+					username = this.index.getUserFromSessionId(sessionKey);
 					this.index.updateSession(sessionKey);
 					writeIndex();
 					
 					System.out.println("Server - Confirm Username = " + username);
 					System.out.println(
-							"Server - " + username + " Timeout : " + this.index.sessionExpireTimeList.get(sessionKey));
+							"Server - " + username + " Timeout : " + this.index.sessionExpiryTimeList.get(sessionKey));
 					// this.dos.writeInt(Server.AUTHORIZED);
 				}
 

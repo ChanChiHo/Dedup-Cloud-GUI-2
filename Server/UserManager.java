@@ -84,7 +84,7 @@ public class UserManager {
 		Iterator<Map.Entry<String, String>> iterator = index.sessionUserList.entrySet().iterator();
 		while (iterator.hasNext()) {
 			Map.Entry<String, String> pair = iterator.next();
-			String temp2 = pair.getKey() + " " + pair.getValue()+" "+index.sessionExpireTimeList.get(pair.getKey());
+			String temp2 = pair.getKey() + " " + pair.getValue()+" "+index.sessionExpiryTimeList.get(pair.getKey());
 
 			System.out.println(temp2);
 

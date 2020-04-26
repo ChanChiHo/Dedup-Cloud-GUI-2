@@ -1097,7 +1097,7 @@ public class GUI {
 		lblChunkDownloaded.setBounds(6, 120, 133, 16);
 		downloadProgress.add(lblChunkDownloaded);
 		
-		currentChunk = new JLabel("???");
+		currentChunk = new JLabel("0");
 		currentChunk.setHorizontalAlignment(SwingConstants.RIGHT);
 		currentChunk.setBounds(148, 120, 61, 16);
 		downloadProgress.add(currentChunk);
