@@ -339,8 +339,7 @@ public class ServerHandler {
 				System.out.println("Server - Receive Login Request, current Time:" + LocalDateTime.now());
 				String loginUsername = this.dis.readUTF();
 				String loginPasswordHash = this.dis.readUTF();
-				System.out
-						.println("[FROM Client] {Username, passwordHash} :" + loginUsername + "," + loginPasswordHash);
+				System.out.println("[FROM Client] {Username, passwordHash} :" + loginUsername + "," + loginPasswordHash);
 
 				if (!index.hasUser(loginUsername)) {
 					System.out.println("Server - Username not correct.");

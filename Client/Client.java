@@ -402,11 +402,13 @@ public class Client {
 
 	public int upload(String path, int min_chunk, int d, int average_chunk, int max_chunk, JProgressBar bar, JLabel label)
 			throws IOException, NoSuchAlgorithmException {
+		StopWatch uploadWatch = new StopWatch("Upload",StopWatch.MILISECOND);
 		System.out.println("Client : Action - Upload");
 		int permission = this.getUploadPermission(path);
 		if (permission == ALLOW_UPLOAD) {
 			// TODO modify the min_chunk, d, average_chunk, max_chunk
 			sendChunks(path, min_chunk, d, average_chunk, max_chunk, bar,label);
+			uploadWatch.stop();
 			return NO_ERROR;
 		} else if (permission == NOT_ALLOW_UPLOAD) {
 			System.out.println("Filename exist. Not allow to upload this file.");
@@ -421,6 +423,7 @@ public class Client {
 	public int download(String filename, String localFilePath, 
 			JLabel current, JLabel total, JLabel time, JProgressBar bar) throws IOException {		
 		System.out.println("Client : Action - Download");
+		StopWatch downloadWatch = new StopWatch("Download",StopWatch.MILISECOND);
 		int permission = this.getDownloadPermission(filename);
 		FileOutputStream out = null;
 		
@@ -486,6 +489,8 @@ public class Client {
 				time.setText("Success Downloaded");
 			}
 			this.socket.close();
+			
+			downloadWatch.stop();
 			return Client.DOWNLOAD_SUCCESS;
 
 		} else if (permission == NOT_ALLOW_DOWNLOAD) {

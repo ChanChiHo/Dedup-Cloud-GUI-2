@@ -9,7 +9,7 @@ import java.util.ArrayList;
 class IndexFile implements java.io.Serializable {
 	
 	//TODO Change the timeout
-	public static final int TIMEOUT_IN_MIN = 1;
+	public static final int SESSION_DURATION_IN_MIN = 1;
 
 	public int logicalChunk;
 	public int physicalChunk;
@@ -193,7 +193,7 @@ class IndexFile implements java.io.Serializable {
 	
 	public void recordNewSession(String username, String key) {
 		this.sessionUserList.put(key, username);
-		this.sessionExpiryTimeList.put(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+		this.sessionExpiryTimeList.put(key, LocalDateTime.now().plusMinutes(IndexFile.SESSION_DURATION_IN_MIN));
 	}
 	
 	public String getUserFromSessionId(String key) {
@@ -205,7 +205,7 @@ class IndexFile implements java.io.Serializable {
 	}
 	
 	public void updateSession(String key) {
-		this.sessionExpiryTimeList.replace(key, LocalDateTime.now().plusMinutes(IndexFile.TIMEOUT_IN_MIN));
+		this.sessionExpiryTimeList.replace(key, LocalDateTime.now().plusMinutes(IndexFile.SESSION_DURATION_IN_MIN));
 	}
 	
 	public void removeExpiredSession() {

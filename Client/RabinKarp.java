@@ -262,7 +262,7 @@ public class RabinKarp {
 	
 	public static void main(String[] args) {
 		RabinKarp obj = new RabinKarp();
-		Timer timer = new Timer("RabinKarp");
+		StopWatch timer = new StopWatch("RabinKarp");
 		timer.start();
 		// Program Start
 		try {

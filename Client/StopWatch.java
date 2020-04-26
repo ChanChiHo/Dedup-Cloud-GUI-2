@@ -1,5 +1,5 @@
 
-public class Timer {
+public class StopWatch {
 	
 	public static final int NANOSECOND = 1;
 	public static final int MILISECOND = 2;
@@ -12,13 +12,13 @@ public class Timer {
 	
 	private int unit = this.NANOSECOND;
 	
-	public Timer(String processName) {
+	public StopWatch(String processName) {
 		this.name = processName;
 		
 		this.start();
 	}
 	
-	public Timer(String processName, int unit) {
+	public StopWatch(String processName, int unit) {
 		this.name = processName;
 		this.unit = unit;
 		
