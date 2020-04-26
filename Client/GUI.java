@@ -573,7 +573,7 @@ public class GUI {
 							System.out.println("GUI - Received protocol = "+list_protocol);
 							
 							if (list_protocol == Client.NOT_AUTHORIZED) {
-								JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+								JOptionPane.showMessageDialog(null, "Session Expired. Please Login Again","Session Expired",JOptionPane.ERROR_MESSAGE);
 								cl.show(cards, "Login");
 								System.out.println("GUI - [Page] Login <- List");
 								return;
@@ -876,7 +876,7 @@ public class GUI {
 									} else if (result == Client.SAME_FILENAME_EXIST) {
 										JOptionPane.showMessageDialog(null, "Filename already exist in server. No allow to upload","Filename exist", JOptionPane.ERROR_MESSAGE);
 									} else if (result == Client.NOT_AUTHORIZED) {
-										JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+										JOptionPane.showMessageDialog(null, "Session Expired. Please Login Again","Session Expired",JOptionPane.ERROR_MESSAGE);
 										cl.show(cards, "Login");
 										System.out.println("GUI - [Page] Login");
 										
@@ -1204,7 +1204,7 @@ public class GUI {
 								
 								
 								if (download_protocol == Client.NOT_AUTHORIZED) {
-									JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+									JOptionPane.showMessageDialog(null, "Session Expired. Please Login Again","Session Expired",JOptionPane.ERROR_MESSAGE);
 									
 									Container cards = frame.getContentPane();
 									CardLayout cl = (CardLayout) cards.getLayout();
@@ -1273,7 +1273,7 @@ public class GUI {
 								if (delete_protocol == Client.DELETE_SUCCESS) {
 									model.removeRow(selectedRow);
 								} else if (delete_protocol == Client.NOT_AUTHORIZED) {
-									JOptionPane.showMessageDialog(null, "System Timeout. Please Login Again","Timeout",JOptionPane.ERROR_MESSAGE);
+									JOptionPane.showMessageDialog(null, "Session Expired. Please Login Again","Session Expired",JOptionPane.ERROR_MESSAGE);
 									
 									Container cards = frame.getContentPane();
 									CardLayout cl = (CardLayout) cards.getLayout();
