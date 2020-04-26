@@ -30,7 +30,7 @@ public class Client {
 	public ArrayList<Byte> fingerprintList = new ArrayList<>();
 	ArrayList<String[]> fileList = new ArrayList<String[]>();
 
-	private String sessionKey = "NULL";
+	private String sessionId = "NULL";
 	private String host;
 	private int port;
 	private SSLSocketFactory factory;
@@ -241,8 +241,8 @@ public class Client {
 		System.out.println("Client - get login permission : ["+permission+"]");
 		
 		if (permission == Client.LOGIN_SUCCESS) {
-			this.sessionKey = this.dis.readUTF();
-			System.out.println("Client - get key = "+this.sessionKey);
+			this.sessionId = this.dis.readUTF();
+			System.out.println("Client - get key = "+this.sessionId);
 		}
 		
 		return permission;
@@ -262,7 +262,7 @@ public class Client {
 		this.dos.writeUTF(file.getName());
 		this.dos.writeInt((int) file.length());
 		
-		this.dos.writeUTF(this.sessionKey);
+		this.dos.writeUTF(this.sessionId);
 
 		int received = this.dis.readInt();
 		// System.out.println("[FROM Server] Message Code =
@@ -277,7 +277,7 @@ public class Client {
 		// received. Content:REQUEST_DOWNLOAD
 
 		this.dos.writeUTF(filename);
-		this.dos.writeUTF(this.sessionKey);
+		this.dos.writeUTF(this.sessionId);
 
 		int received = this.dis.readInt();
 		System.out.println("[FROM Server] Message Code = " + translateMsgCode(received));
@@ -680,7 +680,7 @@ public class Client {
 
 		this.dos.writeUTF(filename);
 		
-		this.dos.writeUTF(this.sessionKey);
+		this.dos.writeUTF(this.sessionId);
 		int received = receiveMsgCode();
 		if (received == DELETE_FILE_NOT_EXIST) {
 			System.out.println("The File is not exist in server");
@@ -701,7 +701,7 @@ public class Client {
 	public int list() throws IOException {
 		System.out.println("Client : Action - List file");
 		sendPureRequest(REQUEST_LIST);
-		sendString(this.sessionKey);
+		sendString(this.sessionId);
 		System.out.println("Client - Request Sent.");
 		
 		fileList.clear();
