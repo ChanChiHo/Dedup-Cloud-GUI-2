@@ -283,6 +283,16 @@ public class GUI {
 		btnLogin.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					
+					if (txtUsername.getText().equals("")) {
+						JOptionPane.showMessageDialog(null, "Username cannot be empty!", "ERROR", JOptionPane.ERROR_MESSAGE);
+						return;
+					} else if (passwordField.getPassword().length == 0) {
+						JOptionPane.showMessageDialog(null, "Password cannot be empty!", "ERROR", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					
+					
 					client.connect(address, 59090);
 					int result = client.login(txtUsername.getText(), new String(passwordField.getPassword()));
 					client.close();
@@ -488,8 +498,6 @@ public class GUI {
 						
 						if (result == Client.USERNAME_EXIST) {
 							JOptionPane.showMessageDialog(null, "Username exist. Please use another username", "Creation Failed", JOptionPane.ERROR_MESSAGE);
-							
-							
 							return;
 						} else if (result == Client.USER_CREATED) {	
 							JOptionPane.showMessageDialog(null, "Account Created. Redirect to Login Page.", "SUCCESS", JOptionPane.INFORMATION_MESSAGE);
