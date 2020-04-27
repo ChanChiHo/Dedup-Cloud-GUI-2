@@ -482,6 +482,15 @@ public class GUI {
 		btnSubmit.setBounds(209, 191, 130, 29);
 		btnSubmit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				if (usernameCreate.getText().equals("")) {
+					JOptionPane.showMessageDialog(null, "Username cannot be empty!", "ERROR", JOptionPane.ERROR_MESSAGE);
+					return;
+				} else if (passwordField_1.getPassword().length == 0 || passwordField_2.getPassword().length == 0) {
+					JOptionPane.showMessageDialog(null, "Password cannot be empty", "ERROR", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				
+				
 				System.out.println("GUI - Submit Create User Form");
 				if (Arrays.equals(passwordField_1.getPassword(), passwordField_2.getPassword())){
 					System.out.println("GUI - Password Vaild.");
